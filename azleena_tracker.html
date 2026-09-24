@@ -1,0 +1,1648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KPI Tracker — Azleena</title>
+<style>
+:root{
+  --navy:#1C3557;--navy2:#2E5481;--bg:#EEF3F9;--card:#fff;
+  --border:#DDE4EE;--text:#1C2B3A;--muted:#6B7E94;
+  --green:#1A9E75;--green-bg:#E2F5EE;
+  --red:#D94040;--red-bg:#FCEAEA;
+  --amber:#D97706;--amber-bg:#FEF3E0;
+  --purple:#6B5FD4;--purple-bg:#EEEDFE;
+  --blue:#1565C0;--blue-bg:#E0F0FF;
+  --r:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);}
+
+/* HEADER */
+.hdr{background:var(--navy);color:#fff;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.hdr-left h1{font-size:15px;font-weight:700;}
+.hdr-left p{font-size:11px;opacity:.6;margin-top:1px;}
+.hdr-right{display:flex;align-items:center;gap:10px;}
+.clock{background:rgba(255,255,255,.13);padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;}
+.save-btn{background:#1A9E75;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;}
+.save-btn:hover{background:#158a63;}
+
+/* TABS */
+.tabs{background:var(--navy2);display:flex;padding:0 20px;overflow-x:auto;}
+.tab{padding:10px 16px;font-size:13px;font-weight:500;color:rgba(255,255,255,.5);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:.2s;}
+.tab.on{color:#fff;border-bottom-color:#fff;}
+
+.main{padding:16px 20px;max-width:1000px;margin:0 auto;}
+
+/* DATE BAR */
+.date-bar{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.date-label{font-size:16px;font-weight:700;color:var(--navy);}
+.date-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.nav-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.nb{background:var(--navy);color:#fff;border:none;padding:6px 13px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;}
+.nb.today{background:var(--green);}
+.past-badge{font-size:11px;background:var(--amber-bg);color:var(--amber);padding:3px 9px;border-radius:20px;font-weight:600;}
+
+/* LEAVE BAR */
+.leave-bar{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.leave-bar-label{font-size:12px;font-weight:700;color:var(--navy);white-space:nowrap;}
+.lb{padding:6px 14px;border-radius:6px;border:1.5px solid;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;}
+.lb-al{background:#E8F5E9;color:#2E7D32;border-color:#A5D6A7;}
+.lb-al.on{background:#2E7D32;color:#fff;}
+.lb-mc{background:#FBE9E7;color:#BF360C;border-color:#FFAB91;}
+.lb-mc.on{background:#BF360C;color:#fff;}
+.lb-upl{background:#EDE7F6;color:#4527A0;border-color:#B39DDB;}
+.lb-upl.on{background:#4527A0;color:#fff;}
+.lb-ph{background:#ECEFF1;color:#455A64;border-color:#B0BEC5;}
+.lb-ph.on{background:#455A64;color:#fff;}
+.lb-clear{padding:6px 11px;border-radius:6px;border:1.5px solid var(--border);background:none;font-size:12px;cursor:pointer;color:var(--muted);}
+.leave-notice{background:var(--amber-bg);border:1px solid var(--amber);border-radius:var(--r);padding:9px 14px;margin-bottom:12px;font-size:13px;color:var(--amber);font-weight:600;text-align:center;}
+
+/* TRIGGER CARDS (Angie) */
+.trigger-section{margin-bottom:14px;}
+.trigger-section-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--navy);background:var(--navy-bg,#E8EEF5);padding:6px 12px;border-radius:6px;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.trig-card{background:#FFF8E1;border:1.5px solid #FFE082;border-radius:var(--r);padding:12px 14px;margin-bottom:8px;}
+.trig-card.triggered{background:var(--green-bg);border-color:var(--green);}
+.trig-row{display:flex;align-items:flex-start;gap:12px;}
+.trig-info{flex:1;}
+.trig-name{font-size:13px;font-weight:600;color:var(--navy);}
+.trig-desc{font-size:11px;color:var(--muted);margin-top:2px;}
+.trig-stamp{font-size:11px;color:var(--green);margin-top:4px;font-weight:500;}
+.trig-deadline{font-size:11px;color:var(--red);margin-top:3px;font-weight:500;}
+.trig-btn{padding:7px 14px;border-radius:7px;border:none;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.trig-btn.release{background:var(--amber);color:#fff;}
+.trig-btn.released{background:var(--green);color:#fff;}
+.trig-btn.undo-trig{background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:5px 10px;margin-top:6px;cursor:pointer;border-radius:5px;}
+
+/* KPI STRIP */
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px;}
+.kpi-tile{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;}
+.kpi-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:3px;}
+.kpi-score{font-size:22px;font-weight:800;color:var(--navy);}
+.kpi-detail{font-size:10px;color:var(--muted);margin-top:2px;}
+.kpi-bar{height:4px;background:var(--border);border-radius:2px;margin-top:7px;}
+.kpi-fill{height:4px;border-radius:2px;transition:width .4s;}
+
+/* TASK CARDS */
+.sec-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:14px 0 7px;}
+.t-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);margin-bottom:7px;}
+.t-row{display:flex;align-items:center;gap:11px;padding:10px 14px;}
+.chk{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:.2s;user-select:none;}
+.chk.done{background:var(--green);border-color:var(--green);color:#fff;}
+.chk.late{background:var(--amber);border-color:var(--amber);color:#fff;}
+.chk.lv{background:#e8e8e8;border-color:#ccc;color:#aaa;cursor:not-allowed;}
+.chk.waiting{background:#FFF3E0;border-color:#FFB74D;color:#E65100;cursor:not-allowed;font-size:11px;}
+.t-info{flex:1;min-width:0;}
+.t-name{font-size:13px;font-weight:500;}
+.t-name.done{text-decoration:line-through;color:var(--muted);}
+.t-due{font-size:11px;color:var(--muted);margin-top:2px;}
+.t-stamp{font-size:11px;margin-top:3px;}
+.t-stamp.ok{color:var(--green);}
+.t-stamp.late{color:var(--amber);}
+.t-deadline-warn{font-size:11px;color:var(--red);margin-top:3px;font-weight:500;}
+.kpi-tag{font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+.tag-disc{background:var(--amber-bg);color:var(--amber);}
+.tag-time{background:var(--purple-bg);color:var(--purple);}
+.tag-k1k2{background:var(--blue-bg);color:var(--blue);}
+.tag-coll{background:var(--green-bg);color:var(--green);}
+.undo-btn{font-size:11px;color:var(--muted);cursor:pointer;padding:4px 9px;border-radius:5px;border:1px solid var(--border);background:none;flex-shrink:0;}
+
+/* CALENDAR */
+.cal-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+.cal-mo-lbl{font-size:15px;font-weight:700;color:var(--navy);min-width:170px;}
+.cal-nav-btn{background:var(--navy);color:#fff;border:none;padding:6px 13px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:14px;}
+.c-hdr{text-align:center;font-size:9px;font-weight:700;color:var(--muted);padding:4px 0;text-transform:uppercase;}
+.c-day{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:5px;min-height:62px;cursor:pointer;transition:.15s;}
+.c-day:hover{border-color:var(--navy2);}
+.c-day.empty{background:transparent;border-color:transparent;cursor:default;}
+.c-day.wknd{background:#FAFAFA;}
+.c-day.today-c{border:2px solid var(--navy);}
+.c-day.sel-c{border:2px solid var(--green);background:var(--green-bg);}
+.c-day.lv-c{background:#FFF8E1;}
+.c-dn{font-size:11px;font-weight:600;margin-bottom:3px;}
+.c-day.wknd .c-dn{color:var(--muted);}
+.c-dots{display:flex;flex-wrap:wrap;gap:2px;}
+.dot{width:6px;height:6px;border-radius:50%;}
+.dg{background:var(--green);}
+.da{background:var(--amber);}
+.dr{background:var(--red);}
+.lv-chip{font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;display:inline-block;margin-top:2px;}
+.lc-al{background:#E8F5E9;color:#2E7D32;}
+.lc-mc{background:#FBE9E7;color:#BF360C;}
+.lc-upl{background:#EDE7F6;color:#4527A0;}
+.lc-ph{background:#ECEFF1;color:#455A64;}
+.cal-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px;}
+.cs{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:10px 13px;}
+.cs-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:2px;}
+.cs-val{font-size:19px;font-weight:800;color:var(--navy);}
+.cs-sub{font-size:10px;color:var(--muted);margin-top:2px;}
+
+/* REPORT */
+.q-pills{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;}
+.q-pill{padding:5px 15px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:var(--card);color:var(--muted);transition:.2s;}
+.q-pill.on{background:var(--navy);color:#fff;border-color:var(--navy);}
+.rpt-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.rpt-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:15px;}
+.rpt-card h3{font-size:11px;font-weight:700;color:var(--navy);margin-bottom:11px;text-transform:uppercase;letter-spacing:.05em;}
+.s-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.s-row:last-child{border-bottom:none;}
+.s-val{font-weight:700;font-size:14px;}
+.big-score{font-size:50px;font-weight:800;color:var(--navy);text-align:center;line-height:1;}
+.cls-badge{display:inline-block;padding:4px 15px;border-radius:20px;font-size:12px;font-weight:700;}
+.cls-a{background:var(--green-bg);color:var(--green);}
+.cls-b{background:var(--amber-bg);color:var(--amber);}
+.cls-c{background:var(--red-bg);color:var(--red);}
+.cls-n{background:var(--bg);color:var(--muted);}
+
+/* BACKUP */
+.bk-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:12px;}
+.bk-card h3{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:5px;}
+.bk-card p{font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;}
+.bk-btn{padding:9px 18px;border-radius:7px;border:none;font-size:13px;font-weight:700;cursor:pointer;margin-right:8px;margin-bottom:6px;}
+.btn-exp{background:var(--navy);color:#fff;}
+.btn-imp{background:var(--green);color:#fff;}
+.btn-clr{background:var(--red-bg);color:var(--red);border:1.5px solid var(--red);}
+.bk-info{font-size:11px;color:var(--muted);margin-top:8px;padding:9px;background:var(--bg);border-radius:6px;line-height:1.6;}
+.bk-summary .s-row{font-size:12px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--navy);color:#fff;padding:11px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;display:none;box-shadow:0 4px 20px rgba(0,0,0,.25);max-width:320px;}
+
+/* PRINT */
+.prn-ctrl{display:flex;align-items:center;gap:11px;margin-bottom:14px;flex-wrap:wrap;}
+.prn-ctrl select{padding:7px 11px;border-radius:6px;border:1px solid var(--border);font-size:13px;}
+.print-btn{background:var(--navy);color:#fff;border:none;padding:8px 17px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;}
+.pp{background:#fff;max-width:760px;margin:0 auto;padding:20px 24px;border-radius:var(--r);box-shadow:0 2px 12px rgba(0,0,0,.08);}
+.pp-coh{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid var(--navy);padding-bottom:9px;margin-bottom:11px;}
+.pp-co{font-size:13px;font-weight:800;color:var(--navy);}
+.pp-co-sub{font-size:9px;color:var(--muted);}
+.pp-dt h2{font-size:12px;font-weight:800;color:var(--navy);margin:0;text-align:right;}
+.pp-dt p{font-size:9px;color:var(--muted);margin-top:2px;text-align:right;}
+.pp-info{display:grid;grid-template-columns:1fr 1fr 1fr;border:1px solid #ccc;margin-bottom:10px;}
+.pp-ic{padding:5px 8px;border-right:1px solid #ccc;border-bottom:1px solid #ccc;}
+.pp-ic:nth-child(3n){border-right:none;}
+.pp-ic:nth-last-child(-n+3){border-bottom:none;}
+.pp-il{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+.pp-iv{font-size:11px;font-weight:600;}
+.bnd-strip{display:flex;gap:5px;margin-bottom:9px;}
+.bnd{flex:1;padding:4px 6px;border-radius:4px;font-size:9px;text-align:center;}
+.bnd strong{display:block;font-size:10px;}
+.b4{background:#C6EFCE;color:#375623;}.b3{background:#DDEBF7;color:#1F3864;}
+.b2{background:#FFEB9C;color:#9C5700;}.b1{background:#FFC7CE;color:#9C0006;}
+.ptbl{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:9px;}
+.ptbl thead tr{background:var(--navy);color:#fff;}
+.ptbl th{padding:5px 6px;border:1px solid var(--navy);font-size:9px;}
+.ptbl td{padding:4px 6px;border:1px solid #DDE4EE;vertical-align:middle;}
+.ptbl tr.kh td{background:var(--navy2);color:#fff;font-weight:700;font-size:9px;}
+.ptbl tr:nth-child(even) td{background:#F7FAFD;}
+.ptbl tr.lv-row td{background:#FFF8E1;color:#8a6d00;font-style:italic;}
+.sc-tbl{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:9px;}
+.sc-tbl th{background:var(--navy2);color:#fff;padding:5px 7px;border:1px solid var(--navy2);font-size:9px;}
+.sc-tbl td{padding:4px 7px;border:1px solid #DDE4EE;}
+.sc-tbl tr:nth-child(even) td{background:#F7FAFD;}
+.sc-tbl tr.tot td{background:#EEF3F9;font-weight:700;}
+.rmk{border:1px solid #DDE4EE;border-radius:6px;padding:9px;margin-bottom:9px;}
+.rmk h4{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:7px;}
+.rl{border-bottom:1px solid #DDE4EE;height:17px;margin-bottom:4px;}
+.pp-sig{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:11px;}
+.pp-sb{border-top:1.5px solid var(--navy);padding-top:5px;}
+.pp-sb-role{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+.pp-sb-line{margin-top:24px;border-bottom:1px solid #999;}
+.pp-sb-name{font-size:9px;color:var(--muted);margin-top:3px;}
+.pp-sb-date{font-size:9px;color:var(--muted);margin-top:4px;}
+.pp-sb-date span{border-bottom:1px solid #999;display:inline-block;width:95px;}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal{background:#fff;border-radius:var(--r);padding:24px;max-width:480px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto;}
+.modal h3{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:6px;}
+.modal-sub{font-size:12px;color:var(--muted);margin-bottom:16px;}
+.modal label{font-size:12px;font-weight:600;color:var(--text);display:block;margin-bottom:4px;margin-top:12px;}
+.modal select,.modal input,.modal textarea{width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;}
+.modal select:focus,.modal input:focus,.modal textarea:focus{outline:none;border-color:var(--navy2);}
+.modal textarea{min-height:80px;resize:vertical;}
+.modal-btns{display:flex;gap:10px;margin-top:18px;justify-content:flex-end;}
+.modal-ok{background:var(--navy);color:#fff;border:none;padding:9px 20px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;}
+.modal-ok:hover{background:var(--navy2);}
+.modal-cancel{background:none;border:1.5px solid var(--border);color:var(--muted);padding:9px 16px;border-radius:7px;font-size:13px;cursor:pointer;}
+.modal-result{font-size:11px;margin-top:8px;padding:8px 10px;border-radius:6px;}
+.modal-ok-res{background:var(--green-bg);color:var(--green);}
+.modal-warn-res{background:var(--amber-bg);color:var(--amber);}
+/* Debtor tracker */
+.debtor-bar{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:7px;}
+.debtor-bar h4{font-size:12px;font-weight:700;color:var(--navy);margin-bottom:10px;}
+.debtor-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+.debtor-label{font-size:12px;font-weight:600;color:var(--text);min-width:130px;}
+.debtor-input{padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;width:150px;}
+.debtor-input:focus{outline:none;border-color:var(--navy2);}
+.debtor-pct{font-size:22px;font-weight:800;color:var(--navy);min-width:70px;text-align:center;}
+.debtor-rating{display:inline-block;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700;}
+.debtor-bar-outer{height:8px;background:var(--border);border-radius:4px;flex:1;min-width:100px;}
+.debtor-bar-inner{height:8px;border-radius:4px;transition:width .4s;}
+.debtor-save-btn{background:var(--navy);color:#fff;border:none;padding:7px 16px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;}
+
+@media print{
+  body{background:#fff;}
+  .hdr,.tabs,.prn-ctrl,.no-print{display:none!important;}
+  #tab-print{display:block!important;}
+  .pp{box-shadow:none;border-radius:0;padding:12px 16px;max-width:100%;}
+  @page{size:A4;margin:9mm;}
+}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<div class="hdr">
+  <div class="hdr-left">
+    <h1>KPI Tracker — Azleena Binti Aman</h1>
+    <p>Account cum Admin Clerk · Macfil Sdn Bhd · FYE 2026/27</p>
+  </div>
+  <div class="hdr-right">
+    <div class="clock" id="clock">⏱ --:-- MYT</div>
+    <button class="save-btn" onclick="exportData()">💾 Save Backup</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab on"  onclick="showTab('today')">📋 Today's Tasks</div>
+  <div class="tab"     onclick="showTab('cal')">📅 Calendar & KPI</div>
+  <div class="tab"     onclick="showTab('print')">🖨️ Print Monthly</div>
+  <div class="tab"     onclick="showTab('backup')">💾 Backup / Restore</div>
+</div>
+
+<div class="main">
+
+<!-- ══ TAB 1: TODAY ══════════════════════════════════════════════════════════ -->
+<div id="tab-today">
+
+  <!-- Date navigation -->
+  <div class="date-bar">
+    <div>
+      <div class="date-label" id="dateLabel"></div>
+      <div class="date-sub" id="dateSub"></div>
+    </div>
+    <div class="nav-row">
+      <span id="pastBadge" class="past-badge" style="display:none">📅 Past date</span>
+      <button class="nb" onclick="navDay(-1)">◀ Prev</button>
+      <button class="nb today" onclick="goToday()">Today</button>
+      <button class="nb" onclick="navDay(1)">Next ▶</button>
+    </div>
+  </div>
+
+  <!-- Leave bar -->
+  <div class="leave-bar">
+    <span class="leave-bar-label">Mark Leave:</span>
+    <button class="lb lb-al" id="lb-AL" onclick="toggleLeave('AL')">🌴 Annual Leave (AL)</button>
+    <button class="lb lb-mc" id="lb-MC" onclick="toggleLeave('MC')">🏥 Medical Leave (MC)</button>
+    <button class="lb lb-upl" id="lb-UPL" onclick="toggleLeave('UPL')">📋 Unpaid Leave (UPL)</button>
+    <button class="lb lb-ph" id="lb-PH" onclick="toggleLeave('PH')">🎉 Public Holiday (PH)</button>
+    <button class="lb-clear" onclick="clearLeave()">✕ Clear</button>
+  </div>
+
+  <div id="leaveNotice" class="leave-notice" style="display:none"></div>
+
+  <!-- Angie trigger section -->
+  <div class="trigger-section" id="triggerSection" style="display:none">
+    <div class="trigger-section-lbl">🔔 Manager Triggers — Angie Tan</div>
+    <div id="triggerList"></div>
+  </div>
+
+  <!-- KPI strip (current month) -->
+  <div class="kpi-strip" id="kpiStrip"></div>
+
+  <!-- Weekend message -->
+  <div id="wkndMsg" style="display:none;text-align:center;padding:28px;color:var(--muted);font-size:14px;background:var(--card);border-radius:var(--r);border:1px solid var(--border);">🌴 Weekend — No tasks scheduled.</div>
+
+  <!-- Debtor Collection Tracker (month-level) -->
+  <div id="debtorTracker" style="display:none"></div>
+  <!-- Incident Tracker -->
+  <div id="incidentSection" style="display:none"></div>
+  <!-- Task lists -->
+  <div id="taskArea">
+    <div id="sec-D"   style="display:none"><div class="sec-lbl">Every Day (Mon–Fri)</div><div id="lst-D"></div></div>
+    <div id="sec-M"   style="display:none"><div class="sec-lbl">Monday Tasks</div><div id="lst-M"></div></div>
+    <div id="sec-WF"  style="display:none"><div class="sec-lbl">Wednesday & Friday — Data Entry</div><div id="lst-WF"></div></div>
+    <div id="sec-F"   style="display:none"><div class="sec-lbl">Friday Tasks</div><div id="lst-F"></div></div>
+    <div id="sec-MTH" style="display:none"><div class="sec-lbl">Monthly Tasks — tick once when completed</div><div id="lst-MTH"></div></div>
+  </div>
+</div>
+
+<!-- ══ TAB 2: CALENDAR & KPI ════════════════════════════════════════════════ -->
+<div id="tab-cal" style="display:none">
+  <div class="q-pills">
+    <div class="q-pill on" onclick="selQ(1,this)">Q1 Apr–Jun 2026</div>
+    <div class="q-pill"    onclick="selQ(2,this)">Q2 Jul–Sep 2026</div>
+    <div class="q-pill"    onclick="selQ(3,this)">Q3 Oct–Dec 2026</div>
+    <div class="q-pill"    onclick="selQ(4,this)">Q4 Jan–Mar 2027</div>
+  </div>
+  <div id="qrpt"></div>
+  <div style="margin-top:18px">
+    <div class="cal-hdr">
+      <button class="cal-nav-btn" onclick="calNav(-1)">◀</button>
+      <div class="cal-mo-lbl" id="calMoLbl"></div>
+      <button class="cal-nav-btn" onclick="calNav(1)">▶</button>
+    </div>
+    <div class="cal-stats" id="calStats"></div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+</div>
+
+<!-- ══ TAB 3: PRINT MONTHLY ════════════════════════════════════════════════ -->
+<div id="tab-print" style="display:none">
+  <div class="prn-ctrl no-print">
+    <span style="font-size:13px;font-weight:600;color:var(--navy)">Month:</span>
+    <select id="prnSel" onchange="buildPrint()"></select>
+    <button class="print-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
+  </div>
+  <div class="pp" id="printPage"></div>
+</div>
+
+<!-- ══ TAB 4: BACKUP / RESTORE ══════════════════════════════════════════════ -->
+<div id="tab-backup" style="display:none">
+  <div class="bk-card">
+    <h3>💾 Save Backup to OneDrive</h3>
+    <p>Download your data as a JSON file. Save it to <strong>OneDrive → Azleena KPI → Backups</strong>. Do this at end of every month.</p>
+    <button class="bk-btn btn-exp" onclick="exportData()">⬇️ Download Backup File</button>
+    <div class="bk-info">📁 File name includes today's date (e.g. <em>azleena_backup_20260430.json</em>)<br>OneDrive keeps version history automatically.</div>
+  </div>
+  <div class="bk-card">
+    <h3>📂 Restore from Backup</h3>
+    <p>If data is lost, restore from the backup file saved in OneDrive.</p>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+    <button class="bk-btn btn-imp" onclick="document.getElementById('importFile').click()">⬆️ Restore from File</button>
+    <div class="bk-info">⚠️ This replaces ALL current data. Make sure you pick the correct file.</div>
+  </div>
+  <div class="bk-card">
+    <h3>📊 Data Summary</h3>
+    <div id="dataSummary" class="bk-summary"></div>
+  </div>
+  <div class="bk-card" style="border-color:var(--red)">
+    <h3 style="color:var(--red)">🗑️ Clear All Data</h3>
+    <p>Permanently delete all records. Export a backup first!</p>
+    <button class="bk-btn btn-clr" onclick="clearAll()">Clear All Data</button>
+  </div>
+</div>
+
+
+<!-- ══ MODALS ══════════════════════════════════════════════════════════════ -->
+<!-- K1/K2 Modal -->
+<div id="k1k2Modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal('k1k2Modal')">
+  <div class="modal">
+    <h3>📑 Raise Self-Bill e-Invoice (K1/K2)</h3>
+    <div class="modal-sub">Select the BL month and permit type. System will check if this is submitted on time (must be done in the month AFTER the BL month).</div>
+    <label>BL Month (the month the BL was issued)</label>
+    <select id="k1k2BlMonth">
+      <option value="">— Select BL Month —</option>
+    </select>
+    <label>Permit Type</label>
+    <select id="k1k2PermitType">
+      <option value="K1">K1 (Import)</option>
+      <option value="K2">K2 (Export)</option>
+    </select>
+    <div id="k1k2Result" class="modal-result" style="display:none"></div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal('k1k2Modal')">Cancel</button>
+      <button class="modal-ok" onclick="submitK1K2()">✅ Mark Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Statutory Renewals Modal -->
+<div id="renewalModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal('renewalModal')">
+  <div class="modal">
+    <h3>🔄 Statutory Renewal — What was renewed?</h3>
+    <div class="modal-sub">Please describe what was renewed, the new expiry date, and any relevant details.</div>
+    <label>Renewal Description</label>
+    <textarea id="renewalDesc" placeholder="e.g. Renewed DBKL business licence — valid until 31 Dec 2027&#10;Renewed company vehicle insurance (plate ABC1234) — valid until 15 Nov 2026"></textarea>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal('renewalModal')">Cancel</button>
+      <button class="modal-ok" onclick="submitRenewal()">✅ Save & Mark Done</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Incident Modal -->
+<div id="incidentModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal('incidentModal')">
+  <div class="modal">
+    <h3 id="incidentModalTitle">📝 Record Incident</h3>
+    <div class="modal-sub" id="incidentModalSub"></div>
+    <label>Type</label>
+    <select id="incidentType">
+      <option value="neg">➖ Issue / Error (deduct)</option>
+      <option value="pos">➕ Good Performance (add)</option>
+    </select>
+    <label>Category</label>
+    <select id="incidentCategory">
+      <option value="attitude">Attitude / Cooperation</option>
+      <option value="accuracy">Data Entry Error</option>
+      <option value="quality">Work Quality (needs redo)</option>
+      <option value="punctuality">Late / Early Leave</option>
+      <option value="other">Other</option>
+    </select>
+    <label>Date</label>
+    <input type="date" id="incidentDate">
+    <label>Remark / Description</label>
+    <textarea id="incidentRemark" placeholder="Describe what happened..."></textarea>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal('incidentModal')">Cancel</button>
+      <button class="modal-ok" onclick="submitIncident()">Save Record</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════════════════════════
+const KM={
+  disc:{label:'Discipline',      weight:.30,fill:'#F59E0B',tc:'tag-disc'},
+  time:{label:'Job On Time',     weight:.15,fill:'#6B5FD4',tc:'tag-time'},
+  k1k2:{label:'K1/K2 e-Invoice', weight:.15,fill:'#1565C0',tc:'tag-k1k2'},
+  coll:{label:'Collection',      weight:.40,fill:'#1A9E75',tc:'tag-coll'},
+};
+
+// freq: D=daily, M=monday, WF=wed&fri, F=friday, MTH=monthly(once)
+// dl: 'morning'=late after 10am, 'eod'=late after 6pm, null=no auto-late
+// trigger: tasks that need Angie to trigger first before Azleena can mark done
+const TASKS=[
+  {id:'d1',name:'Pantry — wash sink, stack all dishes into cabinet',           due:'Every morning (before 9am)',         freq:'D',  dl:'morning',kpi:'disc'},
+  {id:'d2',name:'Complete all filing before End of Day — no carry-over',       due:'Before 6pm (EOD)',                   freq:'D',  dl:'eod',    kpi:'disc'},
+  {id:'d3',name:'Key Official Receipt (OR) in SQL immediately upon payment',   due:'Upon receipt — no delay',            freq:'D',  dl:null,     kpi:'time'},
+  {id:'m1',name:'Collect letters from PMK Letter Box',                          due:'Monday morning',                     freq:'M',  dl:'morning',kpi:'disc'},
+  {id:'m2',name:'Follow up with sales team on ALL outstanding customer debts', due:'Every Monday',                       freq:'M',  dl:null,     kpi:'coll'},
+  {id:'m3',name:'Update debtor reminder list',                                  due:'Every Monday (after follow-up)',      freq:'M',  dl:null,     kpi:'coll'},
+  {id:'w1',name:'Key in forwarder billing in SQL (import & export)',            due:'Every Wed & Fri',                    freq:'WF', dl:null,     kpi:'k1k2'},
+  {id:'w2',name:'Key in insurance invoices in SQL',                             due:'Every Wed & Fri',                    freq:'WF', dl:null,     kpi:'k1k2'},
+  {id:'w3',name:'Chase outstanding forwarder documents (BL & billing)',         due:'Every Wed & Fri',                    freq:'WF', dl:null,     kpi:'k1k2'},
+  {id:'f1',name:'Empty all office bins',                                        due:'Every Friday before EOD',            freq:'F',  dl:'eod',    kpi:'disc'},
+  {id:'mt1',name:'Send SOA to ALL customers',                                   due:'Within 2 working days after Angie releases', freq:'MTH',dl:null,kpi:'coll', trigger:'soa'},
+  {id:'mt2',name:'Credit card reconciliation → submit to Vincent',              due:'By 3rd of month',                    freq:'MTH',dl:null,     kpi:'time'},
+  {id:'mt3',name:'Check salesman expenses claims → pass to Yee Sien',          due:'Within 2 working days of claims received',   freq:'MTH',dl:null,kpi:'time', trigger:'claims'},
+  {id:'mt4',name:'All forwarder billing fully keyed in SQL — no outstanding',  due:'By last working day of month',       freq:'MTH',dl:null,     kpi:'k1k2'},
+  {id:'mt5',name:'Chase all outstanding forwarder invoices / BL',              due:'Before month end closing',           freq:'MTH',dl:null,     kpi:'k1k2'},
+  {id:'mt6',name:'Raise self-bill e-Invoice for all shipments (K1/K2)',        due:'Month following BL date',            freq:'MTH',dl:null,     kpi:'k1k2'},
+  {id:'mt7',name:'Update Debtor Collection Report (Customer Due Listing)',      due:'Weekly / ongoing',                   freq:'MTH',dl:null,     kpi:'coll'},
+  {id:'mt8',name:'Monitor statutory renewals — renew before expiry',           due:'Ongoing — DBKL, fire ext, ins, road tax',freq:'MTH',dl:null, kpi:'disc'},
+];
+
+// Angie triggers — separate from tasks
+const TRIGGERS={
+  soa:{
+    id:'soa',
+    label:'Release SOA to Azleena',
+    desc:'Click when you have released Statement of Accounts for Azleena to send to customers.',
+    btnLabel:'📧 Release SOA',
+    releasedLabel:'✅ SOA Released',
+    deadline:2, // Azleena must complete within 2 working days
+    deadlineLabel:'Azleena has 2 working days to send to all customers',
+  },
+  claims:{
+    id:'claims',
+    label:'Salesman Claims Received',
+    desc:'Click when salesman has submitted their expenses claims (usually around 15th).',
+    btnLabel:'📋 Claims Received',
+    releasedLabel:'✅ Claims Received',
+    deadline:2,
+    deadlineLabel:'Azleena has 2 working days to check and pass to Yee Sien',
+  },
+};
+
+const MONTHS=[
+  {yr:2026,m:4,label:'April 2026',q:1},{yr:2026,m:5,label:'May 2026',q:1},{yr:2026,m:6,label:'June 2026',q:1},
+  {yr:2026,m:7,label:'July 2026',q:2},{yr:2026,m:8,label:'August 2026',q:2},{yr:2026,m:9,label:'September 2026',q:2},
+  {yr:2026,m:10,label:'October 2026',q:3},{yr:2026,m:11,label:'November 2026',q:3},{yr:2026,m:12,label:'December 2026',q:3},
+  {yr:2027,m:1,label:'January 2027',q:4},{yr:2027,m:2,label:'February 2027',q:4},{yr:2027,m:3,label:'March 2027',q:4},
+];
+const QM={1:[0,1,2],2:[3,4,5],3:[6,7,8],4:[9,10,11]};
+const QL={1:'Q1 (Apr–Jun 2026)',2:'Q2 (Jul–Sep 2026)',3:'Q3 (Oct–Dec 2026)',4:'Q4 (Jan–Mar 2027)'};
+const DNAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const LEAVETYPES=['AL','MC','UPL','PH'];
+const LEAVELABELS={AL:'Annual Leave',MC:'Medical Leave',UPL:'Unpaid Leave',PH:'Public Holiday'};
+const LEAVECHIPS={AL:'lc-al',MC:'lc-mc',UPL:'lc-upl',PH:'lc-ph'};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// STATE
+// rec[dateKey_taskId] = {doneAt:ISO, late:bool}
+// mthRec[mthKey_taskId] = {doneAt:ISO, late:bool}
+// leave[dateKey] = 'AL'|'MC'|'UPL'|'PH'
+// triggers[mthKey_triggerId] = {triggeredAt:ISO}  (Angie's releases)
+// ═══════════════════════════════════════════════════════════════════════════════
+let rec={}, mthRec={}, leaveRec={}, trigRec={};
+let viewD=null, calYr=2026, calMo=4, curQ=1;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TIME HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+function getMYT(){return new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Kuala_Lumpur'}));}
+function dk(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function mk(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
+function fmtDT(iso){return new Date(iso).toLocaleString('en-MY',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Kuala_Lumpur'});}
+function fmtDate(d){return d.toLocaleDateString('en-MY',{day:'2-digit',month:'short',year:'numeric'});}
+function fmtLong(d){return d.toLocaleDateString('en-MY',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
+function sameDay(a,b){return dk(a)===dk(b);}
+function isWknd(d){return d.getDay()===0||d.getDay()===6;}
+function wdInMo(yr,m){const a=[];const d=new Date(yr,m-1,1);while(d.getMonth()===m-1){if(!isWknd(d))a.push(new Date(d));d.setDate(d.getDate()+1);}return a;}
+function addWorkdays(fromISO,n){
+  let d=new Date(new Date(fromISO).toLocaleString('en-US',{timeZone:'Asia/Kuala_Lumpur'}));
+  let added=0;
+  while(added<n){d.setDate(d.getDate()+1);if(!isWknd(d))added++;}
+  return d;
+}
+
+setInterval(()=>{document.getElementById('clock').textContent='⏱ '+getMYT().toLocaleTimeString('en-MY',{hour:'2-digit',minute:'2-digit',hour12:true})+' MYT';},1000);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// STORAGE (window.storage = Claude artifact storage)
+// ═══════════════════════════════════════════════════════════════════════════════
+async function loadAll(){
+  await loadSpecial();
+  await loadIncidents();
+  try{const r=await window.storage.get('azl_rec');    if(r)rec=JSON.parse(r.value);}catch(e){}
+  try{const r=await window.storage.get('azl_mth');    if(r)mthRec=JSON.parse(r.value);}catch(e){}
+  try{const r=await window.storage.get('azl_leave');  if(r)leaveRec=JSON.parse(r.value);}catch(e){}
+  try{const r=await window.storage.get('azl_trig');   if(r)trigRec=JSON.parse(r.value);}catch(e){}
+}
+async function saveAll(){
+  try{await window.storage.set('azl_rec',   JSON.stringify(rec));}catch(e){}
+  try{await window.storage.set('azl_mth',   JSON.stringify(mthRec));}catch(e){}
+  try{await window.storage.set('azl_leave', JSON.stringify(leaveRec));}catch(e){}
+  try{await window.storage.set('azl_trig',  JSON.stringify(trigRec));}catch(e){}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TASK HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+function tasksForDay(d){
+  if(isWknd(d))return[];
+  const dow=d.getDay();
+  return TASKS.filter(t=>{
+    if(t.freq==='D')  return true;
+    if(t.freq==='M')  return dow===1;
+    if(t.freq==='WF') return dow===3||dow===5;
+    if(t.freq==='F')  return dow===5;
+    return false;
+  });
+}
+
+function isLate(task,doneISO){
+  if(!task.dl)return false;
+  const myt=new Date(new Date(doneISO).toLocaleString('en-US',{timeZone:'Asia/Kuala_Lumpur'}));
+  const h=myt.getHours();
+  if(task.dl==='morning')return h>=10;
+  if(task.dl==='eod')return h>=18;
+  return false;
+}
+
+// Is triggered task late? (based on WD from trigger date)
+function isTriggerLate(task, doneISO, trigISO){
+  if(!trigISO||!doneISO)return false;
+  const deadline=addWorkdays(trigISO, task.trigger==='soa'?2:2);
+  const doneD=new Date(new Date(doneISO).toLocaleString('en-US',{timeZone:'Asia/Kuala_Lumpur'}));
+  return doneD>deadline;
+}
+
+function getDeadlineStr(task, trigISO){
+  if(!trigISO)return null;
+  const dl=addWorkdays(trigISO, 2);
+  return `⏰ Deadline: ${fmtDate(dl)}`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RENDER TODAY TAB
+// ═══════════════════════════════════════════════════════════════════════════════
+function renderToday(){
+  const myt=getMYT();
+  const isToday=sameDay(viewD,myt);
+  const dayKey=dk(viewD);
+  const dayLeave=leaveRec[dayKey];
+  const mthKey=mk(viewD);
+
+  // Date bar
+  document.getElementById('dateLabel').textContent=fmtLong(viewD);
+  document.getElementById('dateSub').textContent=isToday?'Today — Malaysia Time (MYT)':'Viewing: '+fmtDate(viewD);
+  document.getElementById('pastBadge').style.display=isToday?'none':'flex';
+
+  // Leave buttons
+  LEAVETYPES.forEach(lt=>{
+    document.getElementById('lb-'+lt).classList.toggle('on',dayLeave===lt);
+  });
+
+  // Leave notice
+  const notice=document.getElementById('leaveNotice');
+  if(dayLeave){
+    notice.style.display='block';
+    notice.textContent=`${dayLeave==='AL'?'🌴':dayLeave==='MC'?'🏥':dayLeave==='UPL'?'📋':'🎉'} ${LEAVELABELS[dayLeave]} — Tasks on this day are excluded from KPI.`;
+  }else{
+    notice.style.display='none';
+  }
+
+  // TRIGGERS (Angie section) — show on Today only
+  const trigSec=document.getElementById('triggerSection');
+  const trigList=document.getElementById('triggerList');
+  if(isToday){
+    trigSec.style.display='block';
+    trigList.innerHTML=Object.values(TRIGGERS).map(trig=>{
+      const trigKey=`${mthKey}_${trig.id}`;
+      const triggered=trigRec[trigKey];
+      const deadline=triggered?addWorkdays(triggered.triggeredAt,2):null;
+      const now=getMYT();
+      const overdue=deadline&&now>deadline;
+      return`<div class="trig-card ${triggered?'triggered':''}">
+        <div class="trig-row">
+          <div class="trig-info">
+            <div class="trig-name">${trig.label}</div>
+            <div class="trig-desc">${trig.desc}</div>
+            ${triggered?`<div class="trig-stamp">✅ Triggered: ${fmtDT(triggered.triggeredAt)}</div>
+              <div class="trig-deadline ${overdue?'t-deadline-warn':''}">${trig.deadlineLabel} — Deadline: ${fmtDate(deadline)} ${overdue?'⚠ OVERDUE':''}</div>`:''}
+          </div>
+          ${!triggered
+            ?`<button class="trig-btn release" onclick="triggerAction('${trig.id}')">${trig.btnLabel}</button>`
+            :`<button class="trig-btn undo-trig" onclick="undoTrigger('${trig.id}')">Undo</button>`
+          }
+        </div>
+      </div>`;
+    }).join('');
+  }else{
+    trigSec.style.display='none';
+  }
+
+  // Weekend
+  const wkndMsg=document.getElementById('wkndMsg');
+  const taskArea=document.getElementById('taskArea');
+  if(isWknd(viewD)){
+    wkndMsg.style.display='block';taskArea.style.display='none';
+    renderStrip(viewD);return;
+  }
+  wkndMsg.style.display='none';taskArea.style.display='block';
+  // Debtor & Incident sections (weekend handled above by early return)
+  renderDebtorTracker();
+  renderIncidentSection();
+
+  // Build task groups
+  const grps={D:[],M:[],WF:[],F:[],MTH:[]};
+  tasksForDay(viewD).forEach(t=>grps[t.freq].push(t));
+  TASKS.filter(t=>t.freq==='MTH').forEach(t=>grps.MTH.push(t));
+
+  const SECS={D:'sec-D',M:'sec-M',WF:'sec-WF',F:'sec-F',MTH:'sec-MTH'};
+  const LSTS={D:'lst-D',M:'lst-M',WF:'lst-WF',F:'lst-F',MTH:'lst-MTH'};
+
+  for(const[freq,arr] of Object.entries(grps)){
+    const sec=document.getElementById(SECS[freq]);
+    const lst=document.getElementById(LSTS[freq]);
+    if(!arr.length){sec.style.display='none';continue;}
+    sec.style.display='block';
+
+    lst.innerHTML=arr.map(t=>{
+      const isDaily=t.freq!=='MTH';
+      const taskKey=isDaily?`${dayKey}_${t.id}`:`${mthKey}_${t.id}`;
+      const r=isDaily?rec[taskKey]:mthRec[taskKey];
+      const done=!!r;
+      // For triggered tasks, check if trigger exists
+      const trigKey=t.trigger?`${mthKey}_${t.trigger}`:null;
+      const triggered=trigKey?trigRec[trigKey]:true; // non-triggered tasks always "ready"
+      const late=r&&(t.trigger?isTriggerLate(t,r.doneAt,triggered?.triggeredAt):r.late);
+      const onLeave=!!dayLeave&&isDaily;
+      const waiting=!onLeave&&!done&&!triggered;
+      const deadlineStr=done&&t.trigger&&triggered?getDeadlineStr(t,triggered.triggeredAt):null;
+
+      return`<div class="t-card">
+        <div class="t-row">
+          <div class="chk ${onLeave?'lv':waiting?'waiting':done?(late?'late':'done'):''}"
+            onclick="${onLeave||waiting?'':('toggleTask(\''+t.id+'\',\''+freq+'\')')}"
+            title="${onLeave?'On leave':waiting?'Waiting for Angie to trigger first':done?'Done — click Undo to reverse':'Click to mark done'}">
+            ${onLeave?'—':waiting?'⏳':done?(late?'⚠':'✓'):''}
+          </div>
+          <div class="t-info">
+            <div class="t-name ${done&&!late&&!onLeave?'done':''}">${t.name}
+              ${t.trigger?`<span style="font-size:10px;background:#FFF3E0;color:#E65100;padding:1px 6px;border-radius:4px;margin-left:5px">Angie triggers first</span>`:''}
+            </div>
+            <div class="t-due">⏰ ${t.due}</div>
+            ${waiting?`<div style="font-size:11px;color:var(--amber);margin-top:3px">⏳ Waiting — Angie needs to click trigger above first</div>`:''}
+            ${done&&!onLeave?`<div class="t-stamp ${late?'late':'ok'}">${late?'⚠ Completed late':'✅ Done on time'} · ${fmtDT(r.doneAt)}
+            ${freq==='MTH'&&t.id==='mt6'?(()=>{const mk2=mk(viewD);const entries=k1k2Data[mk2]||[];return entries.map(e=>`<span style="font-size:10px;background:var(--blue-bg);color:var(--blue);padding:1px 6px;border-radius:4px;margin-left:4px">${e.permitType} · BL: ${MONTHS.find(m=>m.yr+'-'+String(m.m).padStart(2,'0')===e.blMonth)?.label||e.blMonth}</span>`).join('')})():''}
+            ${freq==='MTH'&&t.id==='mt8'?(()=>{const mk2=mk(viewD);const entries=renewalData[mk2]||[];return entries.map(e=>`<div style="font-size:10px;color:var(--muted);margin-top:2px">📝 ${e.desc}</div>`).join('')})():''}
+          </div>`:''}
+            ${deadlineStr&&!done?`<div class="t-deadline-warn">${deadlineStr}</div>`:''}
+          </div>
+          <span class="kpi-tag ${KM[t.kpi].tc}">${KM[t.kpi].label}</span>
+          ${done&&!onLeave?`<button class="undo-btn" onclick="${t.id==='mt6'?`undoK1K2('${t.id}','${freq}')`:t.id==='mt8'?`undoRenewal('${t.id}','${freq}')`:`undoTask('${t.id}','${freq}')`}">Undo</button>`:''}
+          ${!done&&!onLeave&&t.id==='mt7'?`<button class="undo-btn" onclick="document.getElementById('debtorTracker').scrollIntoView({behavior:'smooth'})">Update →</button>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+  renderStrip(viewD);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ACTIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+async function toggleTask(tid,freq){
+  // Special tasks — open modal instead of simple tick
+  if(tid==='mt6'){openK1K2Modal();return;}
+  if(tid==='mt8'){openRenewalModal();return;}
+  // mt7 (Debtor) — scroll to debtor tracker
+  if(tid==='mt7'){document.getElementById('debtorTracker')?.scrollIntoView({behavior:'smooth'});showToast('👆 Update the Debtor Collection tracker above');return;}
+  const t=TASKS.find(x=>x.id===tid);
+  const isDaily=freq!=='MTH';
+  const dayKey=dk(viewD);
+  const mthKey=mk(viewD);
+  const taskKey=isDaily?`${dayKey}_${tid}`:`${mthKey}_${tid}`;
+  if(isDaily?rec[taskKey]:mthRec[taskKey])return;
+  const now=getMYT();
+  const nowISO=now.toISOString();
+  // Determine late
+  let late=false;
+  if(t.trigger){
+    const trigKey=`${mthKey}_${t.trigger}`;
+    const trig=trigRec[trigKey];
+    late=trig?isTriggerLate(t,nowISO,trig.triggeredAt):false;
+  }else{
+    late=isLate(t,nowISO);
+  }
+  const entry={doneAt:nowISO,late};
+  if(isDaily)rec[taskKey]=entry; else mthRec[taskKey]=entry;
+  await saveAll();renderToday();
+  showToast(late?`⚠ Marked late · ${fmtDT(nowISO)}`:`✅ Done · ${fmtDT(nowISO)}`);
+}
+
+async function undoK1K2(tid,freq){
+  const mthKey=mk(viewD);
+  delete mthRec[`${mthKey}_${tid}`];
+  if(k1k2Data[mthKey])k1k2Data[mthKey]=[];
+  await saveAll();await saveSpecial();renderToday();showToast('↩ K1/K2 undone');
+}
+async function undoRenewal(tid,freq){
+  const mthKey=mk(viewD);
+  delete mthRec[`${mthKey}_${tid}`];
+  if(renewalData[mthKey])renewalData[mthKey]=[];
+  await saveAll();await saveSpecial();renderToday();showToast('↩ Renewal undone');
+}
+async function undoTask(tid,freq){
+  const isDaily=freq!=='MTH';
+  const taskKey=isDaily?`${dk(viewD)}_${tid}`:`${mk(viewD)}_${tid}`;
+  if(isDaily)delete rec[taskKey]; else delete mthRec[taskKey];
+  await saveAll();renderToday();showToast('↩ Undone');
+}
+
+function navDay(n){viewD=addDays(viewD,n);renderToday();}
+function goToday(){viewD=getMYT();renderToday();}
+
+async function toggleLeave(type){
+  const key=dk(viewD);
+  if(leaveRec[key]===type)delete leaveRec[key]; else leaveRec[key]=type;
+  await saveAll();renderToday();
+}
+async function clearLeave(){delete leaveRec[dk(viewD)];await saveAll();renderToday();}
+
+// Angie triggers
+async function triggerAction(trigId){
+  const mthKey=mk(viewD);
+  const key=`${mthKey}_${trigId}`;
+  trigRec[key]={triggeredAt:getMYT().toISOString()};
+  await saveAll();renderToday();
+  showToast(`✅ ${TRIGGERS[trigId].releasedLabel} · ${fmtDT(trigRec[key].triggeredAt)}`);
+}
+async function undoTrigger(trigId){
+  const key=`${mk(viewD)}_${trigId}`;
+  delete trigRec[key];
+  await saveAll();renderToday();showToast('↩ Trigger undone');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// KPI SCORING
+// ═══════════════════════════════════════════════════════════════════════════════
+function renderStrip(d){
+  const sc=scoreMonth(d.getFullYear(),d.getMonth()+1);
+  document.getElementById('kpiStrip').innerHTML=Object.entries(KM).map(([k,m])=>{
+    const v=sc[k];
+    return`<div class="kpi-tile">
+      <div class="kpi-lbl">${m.label}</div>
+      <div class="kpi-score">${v.rating!==null?v.rating.toFixed(1):'—'}</div>
+      <div class="kpi-detail">${m.weight*100}% · ${v.on}/${v.expected} on time (${v.pct}%)</div>
+      <div class="kpi-bar"><div class="kpi-fill" style="width:${v.pct}%;background:${m.fill}"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function scoreMonth(yr,m){
+  const wds=wdInMo(yr,m);
+  const res={};
+  for(const k of Object.keys(KM))res[k]={on:0,late:0,expected:0,pct:0,rating:null,leaveDays:0};
+
+  // Daily/weekly tasks
+  wds.forEach(d=>{
+    const dayLv=leaveRec[dk(d)];
+    if(dayLv){for(const k of Object.keys(KM))res[k].leaveDays++;return;}
+    tasksForDay(d).forEach(t=>{
+      res[t.kpi].expected++;
+      const r=rec[`${dk(d)}_${t.id}`];
+      if(r){if(r.late)res[t.kpi].late++;else res[t.kpi].on++;}
+    });
+  });
+
+  // Monthly tasks
+  const mthKey=`${yr}-${String(m).padStart(2,'0')}`;
+  TASKS.filter(t=>t.freq==='MTH').forEach(t=>{
+    res[t.kpi].expected++;
+    const r=mthRec[`${mthKey}_${t.id}`];
+    if(r){if(r.late)res[t.kpi].late++;else res[t.kpi].on++;}
+  });
+
+  for(const[k,v] of Object.entries(res)){
+    if(!v.expected)continue;
+    const pct=(v.on/v.expected)*100;
+    v.pct=Math.round(pct);
+    v.rating=(v.on+v.late)===0?null:pct>=90?4:pct>=75?3:pct>=60?2:1;
+  }
+  // Override disc rating with attendance + incident calculation
+  res['disc'].rating = disciplineMonthRating(yr, m);
+  // Override coll rating with debtor collection data
+  const dbScore = debtorMonthScore(yr,m);
+  if(dbScore!==null) res['coll'].rating = dbScore;
+  // Override k1k2 rating with k1k2 submission data
+  const k1k2Score = k1k2MonthRating(yr,m);
+  if(k1k2Score!==null) res['k1k2'].rating = k1k2Score;
+  return res;
+}
+
+function scoreQ(q){
+  const comb={};
+  for(const k of Object.keys(KM))comb[k]={on:0,late:0,expected:0,leaveDays:0};
+  QM[q].forEach(mi=>{
+    const mo=MONTHS[mi];const sc=scoreMonth(mo.yr,mo.m);
+    for(const k of Object.keys(KM)){comb[k].on+=sc[k].on;comb[k].late+=sc[k].late;comb[k].expected+=sc[k].expected;comb[k].leaveDays+=sc[k].leaveDays;}
+  });
+  const res={};
+  for(const[k,v] of Object.entries(comb)){
+    const pct=v.expected===0?0:(v.on/v.expected)*100;
+    res[k]={...v,pct:Math.round(pct),rating:(v.on+v.late)===0?null:pct>=90?4:pct>=75?3:pct>=60?2:1};
+  }
+  return res;
+}
+
+function wtotal(s){let t=0,w=0;for(const[k,v]of Object.entries(s)){if(v.rating!==null){t+=v.rating*KM[k].weight;w+=KM[k].weight;}}return w===0?null:(t/w).toFixed(2);}
+function pc(score){if(score===null)return{label:'No Data',cls:'cls-n'};const v=parseFloat(score);if(v>=3)return{label:'Class A — Outstanding',cls:'cls-a'};if(v>=2)return{label:'Class B — Meeting Expectation',cls:'cls-b'};return{label:'Class C — Below Expectation',cls:'cls-c'};}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CALENDAR
+// ═══════════════════════════════════════════════════════════════════════════════
+function renderCal(){
+  document.getElementById('calMoLbl').textContent=new Date(calYr,calMo-1,1).toLocaleDateString('en-MY',{month:'long',year:'numeric'});
+  const sc=scoreMonth(calYr,calMo);
+  // Stats
+  document.getElementById('calStats').innerHTML=Object.entries(KM).map(([k,m])=>{
+    const v=sc[k];
+    return`<div class="cs">
+      <div class="cs-lbl">${m.label}</div>
+      <div class="cs-val" style="color:${m.fill}">${v.pct}%</div>
+      <div class="cs-sub">${v.on}/${v.expected} on time · Rating: <strong>${v.rating??'—'}</strong></div>
+    </div>`;
+  }).join('');
+  // Grid
+  let g=DNAMES.map(d=>`<div class="c-hdr">${d}</div>`).join('');
+  const firstDow=new Date(calYr,calMo-1,1).getDay();
+  for(let i=0;i<firstDow;i++)g+=`<div class="c-day empty"></div>`;
+  const dim=new Date(calYr,calMo,0).getDate();
+  const myt=getMYT();
+  for(let day=1;day<=dim;day++){
+    const d=new Date(calYr,calMo-1,day);
+    const isT=sameDay(d,myt);const isSel=sameDay(d,viewD);
+    const wknd=isWknd(d);const lv=leaveRec[dk(d)];
+    const t4=tasksForDay(d);
+    let on=0,late=0,miss=0;
+    if(!lv&&!wknd){t4.forEach(t=>{const r=rec[`${dk(d)}_${t.id}`];if(r){if(r.late)late++;else on++;}else miss++;});}
+    let dots='';
+    for(let i=0;i<on;i++)dots+=`<div class="dot dg"></div>`;
+    for(let i=0;i<late;i++)dots+=`<div class="dot da"></div>`;
+    for(let i=0;i<Math.min(miss,4);i++)dots+=`<div class="dot dr"></div>`;
+    const lvChip=lv?`<span class="lv-chip ${LEAVECHIPS[lv]}">${lv}</span>`:'';
+    g+=`<div class="c-day ${wknd?'wknd':''} ${isT?'today-c':''} ${isSel?'sel-c':''} ${lv?'lv-c':''}" onclick="calClick(${calYr},${calMo},${day})">
+      <div class="c-dn">${day}</div>${lvChip}
+      ${!wknd&&!lv&&t4.length?`<div class="c-dots">${dots}</div><div style="font-size:8px;color:var(--muted);margin-top:2px">${on}/${t4.length}</div>`:''}
+    </div>`;
+  }
+  document.getElementById('calGrid').innerHTML=g;
+}
+function calNav(n){calMo+=n;if(calMo>12){calMo=1;calYr++;}if(calMo<1){calMo=12;calYr--;}renderCal();}
+function calClick(yr,m,day){viewD=new Date(yr,m-1,day);showTab('today');}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// QUARTERLY REPORT
+// ═══════════════════════════════════════════════════════════════════════════════
+function selQ(q,el){curQ=q;document.querySelectorAll('.q-pill').forEach(p=>p.classList.remove('on'));el.classList.add('on');renderQRpt();}
+
+function renderQRpt(){
+  const s=scoreQ(curQ);const ov=wtotal(s);const p=pc(ov);
+  let kr='';
+  for(const[k,m]of Object.entries(KM)){
+    const v=s[k];const r=v.rating!==null?v.rating.toFixed(1):'—';const w=v.rating!==null?(v.rating*m.weight).toFixed(2):'—';
+    kr+=`<div class="s-row"><span>${m.label} <span style="color:var(--muted);font-size:10px">(${m.weight*100}%)</span></span><span class="s-val" style="color:${m.fill}">${r} → ${w}</span></div>`;
+  }
+  let mr='';
+  QM[curQ].forEach(mi=>{
+    const mo=MONTHS[mi];const ms=scoreMonth(mo.yr,mo.m);const mov=wtotal(ms);const mp=pc(mov);
+    const lvDays=wdInMo(mo.yr,mo.m).filter(d=>leaveRec[dk(d)]).length;
+    mr+=`<div class="s-row"><span>${mo.label}${lvDays?` <span style="font-size:10px;color:var(--amber)">(${lvDays} leave)</span>`:''}</span>
+      <span style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:10px;color:var(--muted)">${Object.entries(ms).map(([k,v])=>KM[k].label.substring(0,4)+':'+(v.rating!==null?v.rating.toFixed(1):'—')).join(' · ')}</span>
+        <strong>${mov??'—'}</strong>
+        <span class="cls-badge ${mp.cls}" style="font-size:9px;padding:2px 8px">${mp.label.split('—')[0].trim()}</span>
+      </span></div>`;
+  });
+  // Leave summary for quarter
+  const lvC={AL:0,MC:0,UPL:0,PH:0};
+  QM[curQ].forEach(mi=>{const mo=MONTHS[mi];wdInMo(mo.yr,mo.m).forEach(d=>{const lv=leaveRec[dk(d)];if(lv&&lvC[lv]!==undefined)lvC[lv]++;});});
+  const lvTotal=Object.values(lvC).reduce((a,b)=>a+b,0);
+  const lvRow=lvTotal?`<div class="s-row"><span>Leave taken</span><span style="font-size:11px">AL:${lvC.AL} MC:${lvC.MC} UPL:${lvC.UPL} PH:${lvC.PH}</span></div>`:'';
+  document.getElementById('qrpt').innerHTML=`<div class="rpt-grid">
+    <div class="rpt-card"><h3>${QL[curQ]} — Final Rating</h3>
+      <div style="text-align:center;padding:10px 0 8px"><div class="big-score">${ov??'—'}</div><div><span class="cls-badge ${p.cls}">${p.label}</span></div></div>
+      ${kr}
+      <div class="s-row" style="margin-top:4px"><strong>Weighted Total</strong><span class="s-val">${ov??'—'}</span></div>
+      <div style="font-size:10px;color:var(--muted);margin-top:10px;padding:8px;background:var(--bg);border-radius:6px">📋 Copy this score into Azleena's KPI Excel — Q${curQ} sheet</div>
+    </div>
+    <div class="rpt-card"><h3>Monthly Breakdown</h3>${mr}${lvRow}
+      <h3 style="margin-top:14px">Rating Guide</h3>
+      <div class="s-row"><span>4 — Outstanding</span><span style="color:var(--green);font-weight:700">≥ 90% on time</span></div>
+      <div class="s-row"><span>3 — Above Expectation</span><span style="color:var(--blue);font-weight:700">75–89%</span></div>
+      <div class="s-row"><span>2 — Meeting Expectation</span><span style="color:var(--amber);font-weight:700">60–74%</span></div>
+      <div class="s-row"><span>1 — Below Expectation</span><span style="color:var(--red);font-weight:700">&lt;60%</span></div>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PRINT MONTHLY
+// ═══════════════════════════════════════════════════════════════════════════════
+function buildPrint(){
+  const mi=parseInt(document.getElementById('prnSel').value);
+  const mo=MONTHS[mi];
+  const sc=scoreMonth(mo.yr,mo.m);
+  const ov=wtotal(sc);const p=pc(ov);
+  const wds=wdInMo(mo.yr,mo.m);
+  const lvC={AL:0,MC:0,UPL:0,PH:0};
+  const mthKey=`${mo.yr}-${String(mo.m).padStart(2,'0')}`;
+
+  // Daily task log
+  let logRows='';
+  wds.forEach(d=>{
+    const lv=leaveRec[dk(d)];
+    if(lv){
+      lvC[lv]=(lvC[lv]||0)+1;
+      const dow=DNAMES[d.getDay()];
+      const ds=d.toLocaleDateString('en-MY',{day:'2-digit',month:'short'});
+      logRows+=`<tr class="lv-row"><td>${ds} (${dow})</td><td colspan="5">${LEAVELABELS[lv]} — Not counted in KPI</td><td></td></tr>`;
+      return;
+    }
+    const t4=tasksForDay(d);
+    if(!t4.length)return;
+    const dow=DNAMES[d.getDay()];
+    const ds=d.toLocaleDateString('en-MY',{day:'2-digit',month:'short'});
+    t4.forEach(t=>{
+      const r=rec[`${dk(d)}_${t.id}`];
+      const done=!!r;const late=r&&r.late;
+      logRows+=`<tr>
+        <td>${ds} (${dow})</td><td>${t.name}</td>
+        <td style="text-align:center;font-size:9px">${KM[t.kpi].label}</td>
+        <td style="text-align:center">${done&&!late?'✅':''}</td>
+        <td style="text-align:center">${late?'⚠':''}</td>
+        <td style="text-align:center">${!done?'✗':''}</td>
+        <td style="font-size:9px;color:#555">${done?fmtDT(r.doneAt):''}</td>
+      </tr>`;
+    });
+  });
+
+  // Monthly tasks
+  let mthRows='';
+  TASKS.filter(t=>t.freq==='MTH').forEach(t=>{
+    const r=mthRec[`${mthKey}_${t.id}`];
+    const trigKey=t.trigger?`${mthKey}_${t.trigger}`:null;
+    const trig=trigKey?trigRec[trigKey]:null;
+    const done=!!r;const late=r&&(t.trigger&&trig?isTriggerLate(t,r.doneAt,trig.triggeredAt):r.late);
+    const trigInfo=trig?`<br><span style="font-size:9px;color:#888">Triggered: ${fmtDT(trig.triggeredAt)}</span>`:'';
+    mthRows+=`<tr>
+      <td colspan="2">${t.name}${trigInfo}${t.trigger&&!trig?'<br><span style="font-size:9px;color:#E65100">⏳ Not yet triggered by Angie</span>':''}</td>
+      <td style="text-align:center;font-size:9px">${KM[t.kpi].label}</td>
+      <td style="text-align:center">${done&&!late?'✅':''}</td>
+      <td style="text-align:center">${late?'⚠':''}</td>
+      <td style="text-align:center">${!done?'✗':''}</td>
+      <td style="font-size:9px;color:#555">${done?fmtDT(r.doneAt):''}</td>
+    </tr>`;
+  });
+
+  // Debtor collection summary
+  const {target:dbTarget,totalCollected:dbCollected,pct:dbPct,rating:dbRating,entries:dbEntries}=getDebtorTotals(mthKey);
+  const dbRow=dbTarget>0?`<tr style="background:#E8F5E9"><td colspan="2"><strong>💰 Debtor Collection</strong> — Target: RM ${dbTarget.toLocaleString('en-MY',{minimumFractionDigits:2})} | Collected: RM ${dbCollected.toLocaleString('en-MY',{minimumFractionDigits:2})} | <strong>${dbPct}%</strong> → Rating: <strong>${dbRating??'—'}</strong><br>
+    <span style="font-size:9px;color:#555">Daily entries: ${dbEntries.map(e=>e.date+' RM'+e.amount.toLocaleString()).join(' | ')}</span></td><td style="text-align:center">Collection</td><td colspan="4"></td></tr>`:'';
+  // K1K2 entries
+  const k1k2Entries=k1k2Data[mthKey]||[];
+  const k1k2Rows=k1k2Entries.map(e=>`<tr><td colspan="2">Permit ${e.permitType} · BL Month: ${MONTHS.find(m=>m.yr+'-'+String(m.m).padStart(2,'0')===e.blMonth)?.label||e.blMonth}</td><td style="text-align:center;font-size:9px">K1/K2</td><td style="text-align:center">${!e.late?'✅':''}</td><td style="text-align:center">${e.late?'⚠':''}</td><td></td><td style="font-size:9px;color:#555">${fmtDT(e.doneAt)}</td></tr>`).join('');
+  // Renewal entries
+  const renewalEntries=renewalData[mthKey]||[];
+  const renewalRows=renewalEntries.map(e=>`<tr><td colspan="2">📝 ${e.desc}</td><td style="text-align:center;font-size:9px">Discipline</td><td style="text-align:center">✅</td><td></td><td></td><td style="font-size:9px;color:#555">${fmtDT(e.doneAt)}</td></tr>`).join('');
+
+  // Score rows
+  let scRows='';
+  for(const[k,m]of Object.entries(KM)){
+    const v=sc[k];const r=v.rating!==null?v.rating.toFixed(1):'—';const w=v.rating!==null?(v.rating*m.weight).toFixed(2):'—';
+    scRows+=`<tr><td>${m.label}</td><td style="text-align:center">${m.weight*100}%</td>
+      <td style="text-align:center;color:green;font-weight:600">${v.on}</td>
+      <td style="text-align:center;color:#D97706;font-weight:600">${v.late}</td>
+      <td style="text-align:center;color:red;font-weight:600">${v.expected-v.on-v.late}</td>
+      <td style="text-align:center">${v.expected}</td>
+      <td style="text-align:center">${v.pct}%</td>
+      <td style="text-align:center;font-weight:700">${r}</td>
+      <td style="text-align:center;font-weight:700">${w}</td></tr>`;
+  }
+  const lvTotal=Object.values(lvC).reduce((a,b)=>a+b,0);
+  const lvStr=lvTotal?`AL:${lvC.AL} · MC:${lvC.MC} · UPL:${lvC.UPL} · PH:${lvC.PH}`:'No leave taken';
+
+  document.getElementById('printPage').innerHTML=`
+    <div class="pp-coh">
+      <div><div class="pp-co">MACFIL SDN BHD</div><div class="pp-co-sub">200801031070 (832402-V)</div></div>
+      <div class="pp-dt"><h2>MONTHLY KPI MONITORING REPORT</h2><p>${mo.label} · ${QL[mo.q]}</p></div>
+    </div>
+    <div class="pp-info">
+      <div class="pp-ic"><div class="pp-il">Employee</div><div class="pp-iv">Azleena Binti Aman</div></div>
+      <div class="pp-ic"><div class="pp-il">Position</div><div class="pp-iv">Account cum Admin Clerk</div></div>
+      <div class="pp-ic"><div class="pp-il">Department</div><div class="pp-iv">Finance · Macfil Sdn Bhd</div></div>
+      <div class="pp-ic"><div class="pp-il">Immediate Superior</div><div class="pp-iv">Angie Tan · Finance Manager</div></div>
+      <div class="pp-ic"><div class="pp-il">Report Month</div><div class="pp-iv">${mo.label}</div></div>
+      <div class="pp-ic"><div class="pp-il">Leave This Month</div><div class="pp-iv">${lvStr}</div></div>
+    </div>
+    <div class="bnd-strip">
+      <div class="bnd b4"><strong>4</strong>Outstanding ≥90%</div>
+      <div class="bnd b3"><strong>3</strong>Above Exp 75–89%</div>
+      <div class="bnd b2"><strong>2</strong>Meeting Exp 60–74%</div>
+      <div class="bnd b1"><strong>1</strong>Below Exp &lt;60%</div>
+    </div>
+    <table class="ptbl">
+      <thead><tr><th style="width:10%">Date</th><th style="width:32%">Task</th><th style="width:11%">KPI</th>
+        <th style="width:7%">✅ Done</th><th style="width:7%">⚠ Late</th><th style="width:7%">✗ Missed</th>
+        <th style="width:26%">Timestamp (MYT)</th></tr></thead>
+      <tbody>
+        <tr class="kh"><td colspan="7">DAILY & WEEKLY TASKS</td></tr>${logRows}
+        <tr class="kh"><td colspan="7">MONTHLY TASKS</td></tr>${mthRows}${k1k2Rows}${renewalRows}${dbRow}
+      </tbody>
+    </table>
+    <table class="sc-tbl">
+      <thead><tr><th style="text-align:left">KPI</th><th>Wt.</th><th>✅ On Time</th><th>⚠ Late</th><th>✗ Missed</th><th>Total</th><th>Rate</th><th>Rating</th><th>Weighted</th></tr></thead>
+      <tbody>${scRows}
+        <!-- Discipline detail -->
+        ${(()=>{const incLog=incEntries2.length?'<br>'+incEntries2.map(e=>e.date+' '+(e.type==='pos'?'➕':'➖')+' ['+( CAT_LABELS[e.category]||e.category)+'] '+e.remark).join(' | '):'';return '<tr style="background:#FFF8E1"><td colspan="9" style="padding:4px 8px;font-size:9px;color:#8a6d00"><strong>Discipline detail:</strong> Attendance '+attPct2+'% ('+presD2+'/'+totW2+' days) → Rating '+(attR2??'—')+' × 0.3 | Incidents: ➖'+neg2+' ➕'+pos2+' Net:'+Math.max(0,neg2-pos2)+' → Rating '+incR2+' × 0.7'+incLog+'</td></tr>';})()}
+        <!-- K1/K2 detail -->
+        ${k1k2Total2?(()=>{const pctK=Math.round(k1k2OnTime2/k1k2Total2*100);const detail=k1k2Entries2.map(e=>e.permitType+' BL:'+(MONTHS.find(m=>m.yr+'-'+String(m.m).padStart(2,'0')===e.blMonth)?.label||e.blMonth)+' '+(e.late?'⚠Late':'✅OnTime')).join(' · ');return '<tr style="background:#E0F0FF"><td colspan="9" style="padding:4px 8px;font-size:9px;color:#1565C0"><strong>K1/K2 detail:</strong> '+k1k2OnTime2+'/'+k1k2Total2+' on time ('+pctK+'%) | '+detail+'</td></tr>';})():''}
+        <tr class="tot"><td colspan="7" style="text-align:right">Monthly Total Score</td>
+          <td style="text-align:center;font-size:13px">${ov??'—'}</td>
+          <td style="text-align:center"><span class="${p.cls}" style="padding:2px 8px;border-radius:4px;font-size:10px">${p.label.split('—')[0].trim()}</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px">
+      <div class="rmk"><h4>Remarks & Observations</h4><div class="rl"></div><div class="rl"></div><div class="rl"></div><div class="rl"></div></div>
+      <div class="rmk"><h4>Action Required / Follow-up</h4><div class="rl"></div><div class="rl"></div><div class="rl"></div><div class="rl"></div></div>
+    </div>
+    <div class="pp-sig">
+      <div class="pp-sb"><div class="pp-sb-role">Prepared by (Employee)</div><div class="pp-sb-line"></div><div class="pp-sb-name">Azleena Binti Aman</div><div class="pp-sb-date">Date: <span></span></div></div>
+      <div class="pp-sb"><div class="pp-sb-role">Verified by (Immediate Superior)</div><div class="pp-sb-line"></div><div class="pp-sb-name">Angie Tan · Finance Manager</div><div class="pp-sb-date">Date: <span></span></div></div>
+      <div class="pp-sb"><div class="pp-sb-role">Acknowledged by (Management)</div><div class="pp-sb-line"></div><div class="pp-sb-name">Name &amp; Position:</div><div class="pp-sb-date">Date: <span></span></div></div>
+    </div>
+    <div style="font-size:8px;color:var(--muted);text-align:center;margin-top:8px;border-top:1px solid var(--border);padding-top:5px">
+      Generated: ${fmtDate(getMYT())} · All timestamps in Malaysia Time (MYT) · Macfil Sdn Bhd KPI Tracker v4
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BACKUP / RESTORE
+// ═══════════════════════════════════════════════════════════════════════════════
+function exportData(){
+  const d=getMYT();
+  const fn=`azleena_backup_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
+  const data={rec,mthRec,leaveRec,trigRec,debtorData,k1k2Data,renewalData,incidentData,exportedAt:d.toISOString(),version:'v6'};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=fn;a.click();
+  URL.revokeObjectURL(url);
+  showToast('✅ Backup saved: '+fn);
+}
+
+function importData(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async(ev)=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!data.rec)throw new Error('Invalid file');
+      if(!confirm(`Restore from:\n${file.name}\nExported: ${data.exportedAt}\n\nThis replaces ALL current data. Continue?`))return;
+      rec=data.rec||{};mthRec=data.mthRec||{};leaveRec=data.leaveRec||{};trigRec=data.trigRec||{};
+      debtorData=data.debtorData||{};k1k2Data=data.k1k2Data||{};renewalData=data.renewalData||{};incidentData=data.incidentData||{};
+      await saveSpecial();await saveIncidents();
+      await saveAll();renderDataSummary();renderToday();
+      showToast('✅ Data restored from '+file.name);
+    }catch(err){alert('❌ Error: '+err.message);}
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+async function clearAll(){
+  if(!confirm('⚠️ Delete ALL data permanently?\nExport a backup first!'))return;
+  if(!confirm('Final confirmation — really delete everything?'))return;
+  rec={};mthRec={};leaveRec={};trigRec={};
+  await saveAll();renderDataSummary();renderToday();
+  showToast('🗑️ All data cleared');
+}
+
+function renderDataSummary(){
+  const rCount=Object.keys(rec).length;
+  const mCount=Object.keys(mthRec).length;
+  const lCount=Object.keys(leaveRec).length;
+  const tCount=Object.keys(trigRec).length;
+  const months=new Set([...Object.keys(rec),...Object.keys(mthRec)].map(k=>k.substring(0,7)));
+  document.getElementById('dataSummary').innerHTML=`
+    <div class="s-row"><span>Daily task records</span><span class="s-val">${rCount}</span></div>
+    <div class="s-row"><span>Monthly task records</span><span class="s-val">${mCount}</span></div>
+    <div class="s-row"><span>Leave days recorded</span><span class="s-val">${lCount}</span></div>
+    <div class="s-row"><span>Trigger records (SOA / Claims)</span><span class="s-val">${tCount}</span></div>
+    <div class="s-row"><span>Months with data</span><span class="s-val">${months.size}</span></div>
+    <div style="margin-top:10px;font-size:11px;color:var(--muted);padding:9px;background:var(--bg);border-radius:6px">
+      💡 Click <strong>💾 Save Backup</strong> at top right, or use the Download button above.<br>
+      Save the file to: <strong>OneDrive → Azleena KPI → Backups</strong>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+function showTab(name){
+  ['today','cal','print','backup'].forEach(t=>{document.getElementById('tab-'+t).style.display=t===name?'block':'none';});
+  document.querySelectorAll('.tab').forEach((el,i)=>{el.classList.toggle('on',['today','cal','print','backup'][i]===name);});
+  if(name==='cal'){calYr=viewD.getFullYear();calMo=viewD.getMonth()+1;renderCal();renderQRpt();}
+  if(name==='print')buildPrint();
+  if(name==='backup')renderDataSummary();
+}
+
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.display='block';
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.style.display='none',3000);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SPECIAL TASK DATA
+// debtorData[mthKey] = {target: float, collected: float, updatedAt: ISO}
+// k1k2Data[mthKey]   = [{blMonth:'2026-08', permitType:'K1', doneAt:ISO, late:bool}]
+// renewalData[mthKey]= [{desc:str, doneAt:ISO}]
+// ═══════════════════════════════════════════════════════════════════════════════
+let debtorData={}, k1k2Data={}, renewalData={};
+
+async function loadSpecial(){
+  try{const r=await window.storage.get('azl_debtor'); if(r)debtorData=JSON.parse(r.value);}catch(e){}
+  try{const r=await window.storage.get('azl_k1k2');   if(r)k1k2Data=JSON.parse(r.value);}catch(e){}
+  try{const r=await window.storage.get('azl_renewal'); if(r)renewalData=JSON.parse(r.value);}catch(e){}
+}
+async function saveSpecial(){
+  try{await window.storage.set('azl_debtor', JSON.stringify(debtorData));}catch(e){}
+  try{await window.storage.set('azl_k1k2',   JSON.stringify(k1k2Data));}catch(e){}
+  try{await window.storage.set('azl_renewal', JSON.stringify(renewalData));}catch(e){}
+}
+
+// ── MODAL helpers ─────────────────────────────────────────────────────────────
+function closeModal(id){document.getElementById(id).style.display='none';}
+
+function openK1K2Modal(){
+  // Populate BL month options (all 12 months of FYE)
+  const sel=document.getElementById('k1k2BlMonth');
+  sel.innerHTML='<option value="">— Select BL Month —</option>';
+  MONTHS.forEach(m=>{
+    const opt=document.createElement('option');
+    opt.value=`${m.yr}-${String(m.m).padStart(2,'0')}`;
+    opt.textContent=m.label;
+    sel.appendChild(opt);
+  });
+  document.getElementById('k1k2Result').style.display='none';
+  document.getElementById('k1k2Modal').style.display='flex';
+}
+
+function submitK1K2(){
+  const blMonth=document.getElementById('k1k2BlMonth').value;
+  const permitType=document.getElementById('k1k2PermitType').value;
+  const resultEl=document.getElementById('k1k2Result');
+  if(!blMonth){alert('Please select the BL Month.');return;}
+
+  const now=getMYT();
+  const nowMthKey=mk(now);
+  // BL month next month = expected submission month
+  const blParts=blMonth.split('-');
+  const blYr=parseInt(blParts[0]);const blM=parseInt(blParts[1]);
+  let expectedYr=blYr;let expectedM=blM+1;
+  if(expectedM>12){expectedM=1;expectedYr++;}
+  const expectedMthKey=`${expectedYr}-${String(expectedM).padStart(2,'0')}`;
+  const onTime=nowMthKey===expectedMthKey;
+
+  // Show result in modal
+  const blLabel=MONTHS.find(m=>m.yr===blYr&&m.m===blM)?.label||blMonth;
+  const expLabel=MONTHS.find(m=>m.yr===expectedYr&&m.m===expectedM)?.label||expectedMthKey;
+  resultEl.style.display='block';
+  resultEl.className='modal-result '+(onTime?'modal-ok-res':'modal-warn-res');
+  resultEl.innerHTML=onTime
+    ?`✅ <strong>On Time!</strong> BL from ${blLabel} submitted in ${expLabel} — correct.`
+    :`⚠ <strong>Late!</strong> BL from ${blLabel} should have been submitted in ${expLabel}, but submitted in ${MONTHS.find(m=>m.yr===now.getFullYear()&&m.m===(now.getMonth()+1))?.label||nowMthKey}.`;
+
+  // Save
+  const mthKey=mk(viewD);
+  if(!k1k2Data[mthKey])k1k2Data[mthKey]=[];
+  k1k2Data[mthKey].push({blMonth,permitType,doneAt:now.toISOString(),late:!onTime});
+
+  // Mark mt6 as done in mthRec
+  const taskKey=`${mthKey}_mt6`;
+  mthRec[taskKey]={doneAt:now.toISOString(),late:!onTime};
+
+  saveSpecial();saveAll();
+
+  // Close after 2s
+  setTimeout(()=>{closeModal('k1k2Modal');renderToday();},2000);
+  showToast(onTime?'✅ K1/K2 e-Invoice — On Time!':'⚠ K1/K2 e-Invoice — Marked Late');
+}
+
+function openRenewalModal(){
+  document.getElementById('renewalDesc').value='';
+  document.getElementById('renewalModal').style.display='flex';
+}
+
+function submitRenewal(){
+  const desc=document.getElementById('renewalDesc').value.trim();
+  if(!desc){alert('Please describe what was renewed.');return;}
+  const now=getMYT();
+  const mthKey=mk(viewD);
+  if(!renewalData[mthKey])renewalData[mthKey]=[];
+  renewalData[mthKey].push({desc,doneAt:now.toISOString()});
+  // Mark mt8 as done
+  mthRec[`${mthKey}_mt8`]={doneAt:now.toISOString(),late:false};
+  saveSpecial();saveAll();
+  closeModal('renewalModal');renderToday();
+  showToast('✅ Renewal recorded');
+}
+
+// ── DEBTOR TRACKER ────────────────────────────────────────────────────────────
+// debtorData[mthKey] = {target: float, dailyEntries: [{date:'YYYY-MM-DD', amount:float, savedAt:ISO}]}
+
+function getDebtorTotals(mthKey){
+  const d=debtorData[mthKey]||{target:0,dailyEntries:[]};
+  const entries=d.dailyEntries||[];
+  const totalCollected=entries.reduce((sum,e)=>sum+(e.amount||0),0);
+  const target=d.target||0;
+  const pct=target>0?Math.round((totalCollected/target)*100):0;
+  const rating=target===0?null:pct>=85?4:pct>=75?3:pct>=60?2:1;
+  return{target,totalCollected,entries,pct,rating};
+}
+
+function renderDebtorTracker(){
+  const mthKey=mk(viewD);
+  const {target,totalCollected,entries,pct,rating}=getDebtorTotals(mthKey);
+  const mo=MONTHS.find(m=>m.yr===viewD.getFullYear()&&m.m===(viewD.getMonth()+1));
+  const ratingColors={4:['#C6EFCE','#375623'],3:['#DDEBF7','#1F3864'],2:['#FFEB9C','#9C5700'],1:['#FFC7CE','#9C0006']};
+  const rc=rating?ratingColors[rating]:['#EEF3F9','#6B7E94'];
+  const barColor=pct>=85?'#1A9E75':pct>=75?'#1565C0':pct>=60?'#D97706':'#D94040';
+
+  // Today's entry if any
+  const todayKey=dk(viewD);
+  const todayEntry=entries.find(e=>e.date===todayKey);
+
+  // Daily entries table (last 10)
+  const recentEntries=[...entries].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
+  const entriesHTML=recentEntries.length?`
+    <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:10px">
+      <thead><tr style="background:var(--bg)">
+        <th style="padding:4px 8px;text-align:left;border:1px solid var(--border)">Date</th>
+        <th style="padding:4px 8px;text-align:right;border:1px solid var(--border)">Amount Received (RM)</th>
+        <th style="padding:4px 8px;text-align:center;border:1px solid var(--border)">Action</th>
+      </tr></thead>
+      <tbody>
+        ${recentEntries.map(e=>`<tr>
+          <td style="padding:4px 8px;border:1px solid var(--border)">${e.date}</td>
+          <td style="padding:4px 8px;text-align:right;border:1px solid var(--border);font-weight:600">RM ${e.amount.toLocaleString('en-MY',{minimumFractionDigits:2})}</td>
+          <td style="padding:4px 8px;text-align:center;border:1px solid var(--border)"><button onclick="deleteDebtorEntry('${e.date}')" style="font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:none;cursor:pointer;color:var(--red)">✕</button></td>
+        </tr>`).join('')}
+        <tr style="background:var(--bg);font-weight:700">
+          <td style="padding:5px 8px;border:1px solid var(--border)">Total Collected</td>
+          <td style="padding:5px 8px;text-align:right;border:1px solid var(--border);color:var(--green)">RM ${totalCollected.toLocaleString('en-MY',{minimumFractionDigits:2})}</td>
+          <td style="border:1px solid var(--border)"></td>
+        </tr>
+      </tbody>
+    </table>`:'<div style="font-size:11px;color:var(--muted);margin-top:8px">No entries yet this month.</div>';
+
+  document.getElementById('debtorTracker').innerHTML=`
+    <div class="debtor-bar">
+      <h4>💰 Debtor Collection — ${mo?.label||''}</h4>
+
+      <!-- Target (Angie fills once per month) -->
+      <div class="debtor-row" style="margin-bottom:10px">
+        <span class="debtor-label">🎯 Monthly Target (RM)
+          <span style="font-size:10px;background:#FFF3E0;color:#E65100;padding:1px 5px;border-radius:3px;margin-left:4px">Angie fills</span>
+        </span>
+        <input class="debtor-input" type="number" id="debtorTarget" placeholder="e.g. 50000"
+          value="${target||''}" step="0.01">
+        <button class="debtor-save-btn" onclick="saveDebtorTarget()">Set Target</button>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="debtor-row" style="gap:12px;margin-bottom:10px">
+        <div class="debtor-bar-outer"><div class="debtor-bar-inner" style="width:${Math.min(pct,100)}%;background:${barColor}"></div></div>
+        <div class="debtor-pct">${target>0?pct+'%':'—'}</div>
+        ${rating?`<span class="debtor-rating" style="background:${rc[0]};color:${rc[1]}">Rating ${rating}</span>`
+          :'<span class="debtor-rating" style="background:#EEF3F9;color:#6B7E94">—</span>'}
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:12px">
+        Target: RM ${target.toLocaleString('en-MY',{minimumFractionDigits:2})} &nbsp;|&nbsp;
+        Collected: RM ${totalCollected.toLocaleString('en-MY',{minimumFractionDigits:2})} &nbsp;|&nbsp;
+        Remaining: RM ${Math.max(0,target-totalCollected).toLocaleString('en-MY',{minimumFractionDigits:2})}
+        &nbsp;&nbsp;<span style="font-size:9px">4≥85% · 3=75–84% · 2=60–74% · 1&lt;60%</span>
+      </div>
+
+      <!-- Azleena daily entry -->
+      <div style="background:var(--green-bg);border:1px solid var(--green);border-radius:8px;padding:10px 12px;margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px">
+          ✅ Azleena — Enter today's collection (${todayKey})
+        </div>
+        <div class="debtor-row">
+          <span class="debtor-label" style="font-size:12px">Amount received today (RM)</span>
+          <input class="debtor-input" type="number" id="debtorTodayAmt"
+            placeholder="e.g. 5000"
+            value="${todayEntry?todayEntry.amount:''}" step="0.01">
+          <button class="debtor-save-btn" onclick="saveDebtorToday()">
+            ${todayEntry?'Update':'Add'}
+          </button>
+        </div>
+        ${todayEntry?`<div style="font-size:10px;color:var(--green);margin-top:4px">✅ Today: RM ${todayEntry.amount.toLocaleString('en-MY',{minimumFractionDigits:2})} · Saved ${fmtDT(todayEntry.savedAt)}</div>`:''}
+      </div>
+
+      <!-- Daily entries log -->
+      <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:4px">Daily Collection Log (this month)</div>
+      ${entriesHTML}
+    </div>`;
+  document.getElementById('debtorTracker').style.display='block';
+}
+
+async function saveDebtorTarget(){
+  const target=parseFloat(document.getElementById('debtorTarget').value)||0;
+  const mthKey=mk(viewD);
+  if(!debtorData[mthKey])debtorData[mthKey]={target:0,dailyEntries:[]};
+  debtorData[mthKey].target=target;
+  await saveSpecial();
+  renderDebtorTracker();
+  showToast('✅ Target set: RM '+target.toLocaleString());
+}
+
+async function saveDebtorToday(){
+  const amt=parseFloat(document.getElementById('debtorTodayAmt').value);
+  if(!amt||amt<=0){alert('Please enter a valid amount.');return;}
+  const mthKey=mk(viewD);
+  const todayKey=dk(viewD);
+  if(!debtorData[mthKey])debtorData[mthKey]={target:0,dailyEntries:[]};
+  const entries=debtorData[mthKey].dailyEntries||[];
+  // Update or add today's entry
+  const idx=entries.findIndex(e=>e.date===todayKey);
+  const entry={date:todayKey,amount:amt,savedAt:getMYT().toISOString()};
+  if(idx>=0)entries[idx]=entry; else entries.push(entry);
+  debtorData[mthKey].dailyEntries=entries;
+  await saveSpecial();
+  renderDebtorTracker();
+  showToast('✅ RM '+amt.toLocaleString()+' saved for '+todayKey);
+}
+
+async function deleteDebtorEntry(dateKey){
+  if(!confirm('Delete entry for '+dateKey+'?'))return;
+  const mthKey=mk(viewD);
+  if(!debtorData[mthKey])return;
+  debtorData[mthKey].dailyEntries=(debtorData[mthKey].dailyEntries||[]).filter(e=>e.date!==dateKey);
+  await saveSpecial();
+  renderDebtorTracker();
+  showToast('↩ Entry deleted');
+}
+
+// K1K2 month rating based on submitted e-invoices
+function k1k2MonthRating(yr,m){
+  const mthKey=`${yr}-${String(m).padStart(2,'0')}`;
+  const entries=k1k2Data[mthKey]||[];
+  if(!entries.length)return null;
+  const total=entries.length;
+  const onTime=entries.filter(e=>!e.late).length;
+  const pct=(onTime/total)*100;
+  return pct>=100?4:pct>=90?3:pct>=80?2:1;
+}
+
+// Debtor KPI score for a month (used in scoring)
+function debtorMonthScore(yr,m){
+  const mthKey=`${yr}-${String(m).padStart(2,'0')}`;
+  const {target,totalCollected,pct,rating}=getDebtorTotals(mthKey);
+  return rating;
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INCIDENT TRACKER
+// incidentData[mthKey] = [{id, type:'pos'|'neg', category, date, remark, savedAt}]
+// ═══════════════════════════════════════════════════════════════════════════════
+let incidentData = {};
+
+async function loadIncidents(){
+  try{const r=await window.storage.get('azl_incidents'); if(r)incidentData=JSON.parse(r.value);}catch(e){}
+}
+async function saveIncidents(){
+  try{await window.storage.set('azl_incidents',JSON.stringify(incidentData));}catch(e){}
+}
+
+const CAT_LABELS = {
+  attitude:'Attitude / Cooperation',
+  accuracy:'Data Entry Error',
+  quality:'Work Quality (needs redo)',
+  punctuality:'Late / Early Leave',
+  other:'Other'
+};
+
+function openIncidentModal(){
+  const now = getMYT();
+  document.getElementById('incidentModalTitle').textContent = '📝 Record Incident — Angie Tan';
+  document.getElementById('incidentModalSub').textContent = 'Record an issue (➖) or good performance (➕). This affects Azleena Discipline KPI.';
+  document.getElementById('incidentDate').value = dk(now);
+  document.getElementById('incidentType').value = 'neg';
+  document.getElementById('incidentCategory').value = 'attitude';
+  document.getElementById('incidentRemark').value = '';
+  document.getElementById('incidentModal').style.display = 'flex';
+}
+
+async function submitIncident(){
+  const type = document.getElementById('incidentType').value;
+  const category = document.getElementById('incidentCategory').value;
+  const date = document.getElementById('incidentDate').value;
+  const remark = document.getElementById('incidentRemark').value.trim();
+  if(!date){alert('Please select a date.');return;}
+  if(!remark){alert('Please enter a remark.');return;}
+
+  // Use the month of the incident date
+  const incD = new Date(date+'T00:00:00');
+  const mthKey = `${incD.getFullYear()}-${String(incD.getMonth()+1).padStart(2,'0')}`;
+  if(!incidentData[mthKey]) incidentData[mthKey]=[];
+  incidentData[mthKey].push({
+    id: Date.now().toString(),
+    type, category, date, remark,
+    savedAt: getMYT().toISOString()
+  });
+  await saveIncidents();
+  closeModal('incidentModal');
+  renderIncidentSection();
+  showToast(type==='pos'?'➕ Good performance recorded':'➖ Incident recorded');
+}
+
+async function deleteIncident(mthKey, id){
+  if(!confirm('Delete this record?'))return;
+  incidentData[mthKey]=(incidentData[mthKey]||[]).filter(x=>x.id!==id);
+  await saveIncidents();
+  renderIncidentSection();
+}
+
+// Calculate incident rating for a month
+// Net = max(0, neg - pos), Rating: 0=4, 1-2=3, 3-5=2, >5=1
+function incidentMonthRating(mthKey){
+  const entries = incidentData[mthKey]||[];
+  const neg = entries.filter(e=>e.type==='neg').length;
+  const pos = entries.filter(e=>e.type==='pos').length;
+  const net = Math.max(0, neg - pos);
+  return net===0?4:net<=2?3:net<=5?2:1;
+}
+
+// Calculate attendance rating for a month
+// Absent = AL + MC + UPL (NOT PH)
+// Rate = present / (workdays - PH)
+function attendanceMonthRating(yr, m){
+  const wds = wdInMo(yr, m);
+  // Count PH days
+  const phDays = wds.filter(d=>leaveRec[dk(d)]==='PH').length;
+  const absentDays = wds.filter(d=>['AL','MC','UPL'].includes(leaveRec[dk(d)])).length;
+  const totalWorkable = wds.length - phDays;
+  if(totalWorkable<=0) return null;
+  const presentDays = totalWorkable - absentDays;
+  const rate = (presentDays/totalWorkable)*100;
+  return rate>=95?4:rate>=90?3:rate>=85?2:1;
+}
+
+// Final Discipline rating = (attendance × 0.3) + (incident × 0.7)
+function disciplineMonthRating(yr, m){
+  const mthKey=`${yr}-${String(m).padStart(2,'0')}`;
+  const attR = attendanceMonthRating(yr,m);
+  const incR = incidentMonthRating(mthKey);
+  if(attR===null) return incR; // no workdays
+  return Math.min(4, Math.max(1, Math.round((attR*0.3 + incR*0.7)*10)/10));
+}
+
+function renderIncidentSection(){
+  const sec = document.getElementById('incidentSection');
+  if(!sec) return;
+  const mthKey = mk(viewD);
+  const entries = (incidentData[mthKey]||[]).sort((a,b)=>b.date.localeCompare(a.date));
+  const neg = entries.filter(e=>e.type==='neg').length;
+  const pos = entries.filter(e=>e.type==='pos').length;
+  const net = Math.max(0, neg-pos);
+  const incR = incidentMonthRating(mthKey);
+  const attR = attendanceMonthRating(viewD.getFullYear(), viewD.getMonth()+1);
+  const discR = disciplineMonthRating(viewD.getFullYear(), viewD.getMonth()+1);
+  const ratingColors={4:['#C6EFCE','#375623'],3:['#DDEBF7','#1F3864'],2:['#FFEB9C','#9C5700'],1:['#FFC7CE','#9C0006']};
+
+  const wds = wdInMo(viewD.getFullYear(), viewD.getMonth()+1);
+  const phDays = wds.filter(d=>leaveRec[dk(d)]==='PH').length;
+  const absentDays = wds.filter(d=>['AL','MC','UPL'].includes(leaveRec[dk(d)])).length;
+  const totalWorkable = wds.length - phDays;
+  const presentDays = totalWorkable - absentDays;
+  const attPct = totalWorkable>0?Math.round((presentDays/totalWorkable)*100):0;
+
+  const entriesHTML = entries.length ? entries.map(e=>`
+    <tr>
+      <td style="padding:4px 8px;border:1px solid var(--border)">${e.date}</td>
+      <td style="padding:4px 8px;border:1px solid var(--border);text-align:center">
+        <span style="font-size:12px;font-weight:700;color:${e.type==='pos'?'var(--green)':'var(--red)'}">${e.type==='pos'?'➕':'➖'}</span>
+      </td>
+      <td style="padding:4px 8px;border:1px solid var(--border);font-size:11px">${CAT_LABELS[e.category]||e.category}</td>
+      <td style="padding:4px 8px;border:1px solid var(--border);font-size:11px">${e.remark}</td>
+      <td style="padding:4px 8px;border:1px solid var(--border);text-align:center">
+        <button onclick="deleteIncident('${mthKey}','${e.id}')" style="font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:none;cursor:pointer;color:var(--red)">✕</button>
+      </td>
+    </tr>`).join('') : `<tr><td colspan="5" style="padding:8px;text-align:center;color:var(--muted);font-size:12px">No incidents recorded this month.</td></tr>`;
+
+  sec.style.display = 'block';
+  sec.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <h4 style="font-size:13px;font-weight:700;color:var(--navy)">📊 Discipline KPI — ${MONTHS.find(m=>m.yr===viewD.getFullYear()&&m.m===(viewD.getMonth()+1))?.label||''}</h4>
+        <button onclick="openIncidentModal()" style="background:var(--navy);color:#fff;border:none;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">+ Add Incident Record</button>
+      </div>
+
+      <!-- Scores summary -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+        <div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px">Attendance (30%)</div>
+          <div style="font-size:20px;font-weight:800;color:var(--navy)">${attR??'—'}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${attPct}% · ${presentDays}/${totalWorkable} days</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px">AL:${wds.filter(d=>leaveRec[dk(d)]==='AL').length} MC:${wds.filter(d=>leaveRec[dk(d)]==='MC').length} UPL:${wds.filter(d=>leaveRec[dk(d)]==='UPL').length}</div>
+        </div>
+        <div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px">Incidents (70%)</div>
+          <div style="font-size:20px;font-weight:800;color:var(--navy)">${incR}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">➖${neg} ➕${pos} Net:${net}</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px">0=4pts · 1-2=3pts · 3-5=2pts · >5=1pt</div>
+        </div>
+        <div style="background:${ratingColors[discR]?.[0]||'#EEF3F9'};border-radius:8px;padding:10px;text-align:center;border:1.5px solid ${discR>=3?'var(--green)':discR===2?'var(--amber)':'var(--red)'}">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:${ratingColors[discR]?.[1]||'#6B7E94'};margin-bottom:4px">Discipline Final</div>
+          <div style="font-size:28px;font-weight:800;color:${ratingColors[discR]?.[1]||'#6B7E94'}">${discR??'—'}</div>
+          <div style="font-size:9px;color:${ratingColors[discR]?.[1]||'#6B7E94'};margin-top:2px">(${attR??'—'}×0.3)+(${incR}×0.7)</div>
+        </div>
+      </div>
+
+      <!-- Rating guide -->
+      <div style="display:flex;gap:5px;margin-bottom:12px">
+        <div style="flex:1;padding:4px 6px;border-radius:4px;font-size:9px;text-align:center;background:#C6EFCE;color:#375623"><strong>4</strong> Attend≥95% · 0 incident</div>
+        <div style="flex:1;padding:4px 6px;border-radius:4px;font-size:9px;text-align:center;background:#DDEBF7;color:#1F3864"><strong>3</strong> 90–94% · 1–2 incidents</div>
+        <div style="flex:1;padding:4px 6px;border-radius:4px;font-size:9px;text-align:center;background:#FFEB9C;color:#9C5700"><strong>2</strong> 85–89% · 3–5 incidents</div>
+        <div style="flex:1;padding:4px 6px;border-radius:4px;font-size:9px;text-align:center;background:#FFC7CE;color:#9C0006"><strong>1</strong> &lt;85% · &gt;5 incidents</div>
+      </div>
+
+      <!-- Incident table -->
+      <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:6px">Incident Records This Month</div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="background:var(--navy);color:#fff">
+          <th style="padding:5px 8px;border:1px solid var(--navy);text-align:left;width:12%">Date</th>
+          <th style="padding:5px 8px;border:1px solid var(--navy);width:8%">Type</th>
+          <th style="padding:5px 8px;border:1px solid var(--navy);text-align:left;width:22%">Category</th>
+          <th style="padding:5px 8px;border:1px solid var(--navy);text-align:left">Remark</th>
+          <th style="padding:5px 8px;border:1px solid var(--navy);width:8%">Del</th>
+        </tr></thead>
+        <tbody>${entriesHTML}</tbody>
+      </table>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════════════
+(async()=>{
+  await loadAll();
+  viewD=getMYT();
+  // Populate print month selector
+  const sel=document.getElementById('prnSel');
+  MONTHS.forEach((m,i)=>{const o=document.createElement('option');o.value=i;o.textContent=m.label;sel.appendChild(o);});
+  const cur=MONTHS.findIndex(m=>m.yr===viewD.getFullYear()&&m.m===(viewD.getMonth()+1));
+  if(cur>=0)sel.value=cur;
+  renderToday();
+})();
+</script>
+</body>
+</html>
