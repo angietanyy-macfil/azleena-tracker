@@ -362,8 +362,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 <!-- ══ TAB 4: BACKUP / RESTORE ══════════════════════════════════════════════ -->
 <div id="tab-backup" style="display:none">
   <div class="bk-card">
-    <h3>💾 Save Backup to OneDrive</h3>
-    <p>Download your data as a JSON file. Save it to <strong>OneDrive → Azleena KPI → Backups</strong>. Do this at end of every month.</p>
+    <h3>💾 Download Backup (Extra Safety)</h3>
+    <p>Your data is already saved in <strong>Supabase cloud automatically</strong>. This download is an extra backup just in case. Save to <strong>OneDrive → Azleena KPI → Backups</strong> monthly.</p>
     <button class="bk-btn btn-exp" onclick="exportData()">⬇️ Download Backup File</button>
     <div class="bk-info">📁 File name includes today's date (e.g. <em>azleena_backup_20260430.json</em>)<br>OneDrive keeps version history automatically.</div>
   </div>
@@ -536,6 +536,81 @@ let rec={}, mthRec={}, leaveRec={}, trigRec={};
 let viewD=null, calYr=2026, calMo=4, curQ=1;
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// SUPABASE CONFIG & HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://evjbufmetzbncshdukna.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_U4UNLdV_3NGSmYonxbUGSQ_yLPLeFxp';
+
+// Use legacy anon key format for REST API compatibility
+const SB_HEADERS = {
+  'apikey': SUPABASE_KEY,
+  'Authorization': 'Bearer ' + SUPABASE_KEY,
+  'Content-Type': 'application/json',
+  'X-Client-Info': 'azleena-tracker'
+};
+
+async function sbGet(table, params='') {
+  try {
+    const res = await fetch(SUPABASE_URL+'/rest/v1/'+table+'?'+params, {
+      headers: SB_HEADERS
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      console.error('sbGet error:', res.status, err);
+      return [];
+    }
+    return await res.json();
+  } catch(e) { console.error('sbGet exception:', e); return []; }
+}
+async function sbUpsert(table, data) {
+  try {
+    const res = await fetch(SUPABASE_URL+'/rest/v1/'+table, {
+      method:'POST',
+      headers:{...SB_HEADERS,'Prefer':'resolution=merge-duplicates'},
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      console.error('sbUpsert error:', res.status, err);
+      return false;
+    }
+    return true;
+  } catch(e) { console.error('sbUpsert exception:', e); return false; }
+}
+async function sbDelete(table, match) {
+  try {
+    const params = Object.entries(match).map(([k,v])=>k+'=eq.'+encodeURIComponent(v)).join('&');
+    const res = await fetch(SUPABASE_URL+'/rest/v1/'+table+'?'+params, {
+      method:'DELETE',
+      headers: SB_HEADERS
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      console.error('sbDelete error:', res.status, err);
+      return false;
+    }
+    return true;
+  } catch(e) { console.error('sbDelete exception:', e); return false; }
+}
+async function sbInsert(table, data) {
+  try {
+    const res = await fetch(SUPABASE_URL+'/rest/v1/'+table, {
+      method:'POST',
+      headers:{...SB_HEADERS,'Prefer':'return=representation'},
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      console.error('sbInsert error:', res.status, err);
+      return null;
+    }
+    return await res.json();
+  } catch(e) { console.error('sbInsert exception:', e); return null; }
+}
+
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // TIME HELPERS
 // ═══════════════════════════════════════════════════════════════════════════════
 function getMYT(){return new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Kuala_Lumpur'}));}
@@ -558,21 +633,34 @@ function addWorkdays(fromISO,n){
 setInterval(()=>{document.getElementById('clock').textContent='⏱ '+getMYT().toLocaleTimeString('en-MY',{hour:'2-digit',minute:'2-digit',hour12:true})+' MYT';},1000);
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// STORAGE (window.storage = Claude artifact storage)
+// SUPABASE LOAD/SAVE
 // ═══════════════════════════════════════════════════════════════════════════════
 async function loadAll(){
+  showToast('⏳ Loading data...');
   await loadSpecial();
   await loadIncidents();
-  try{const r=await window.storage.get('azl_rec');    if(r)rec=JSON.parse(r.value);}catch(e){}
-  try{const r=await window.storage.get('azl_mth');    if(r)mthRec=JSON.parse(r.value);}catch(e){}
-  try{const r=await window.storage.get('azl_leave');  if(r)leaveRec=JSON.parse(r.value);}catch(e){}
-  try{const r=await window.storage.get('azl_trig');   if(r)trigRec=JSON.parse(r.value);}catch(e){}
+
+  // Load daily records
+  const dr = await sbGet('daily_records', 'select=task_id,date_key,done_at,late');
+  dr.forEach(r => rec[`${r.date_key}_${r.task_id}`] = {doneAt:r.done_at, late:r.late});
+
+  // Load monthly records
+  const mr = await sbGet('monthly_records', 'select=task_id,month_key,done_at,late');
+  mr.forEach(r => mthRec[`${r.month_key}_${r.task_id}`] = {doneAt:r.done_at, late:r.late});
+
+  // Load leave records
+  const lr = await sbGet('leave_records', 'select=date_key,leave_type');
+  lr.forEach(r => leaveRec[r.date_key] = r.leave_type);
+
+  // Load trigger records
+  const tr = await sbGet('trigger_records', 'select=trigger_id,month_key,triggered_at');
+  tr.forEach(r => trigRec[`${r.month_key}_${r.trigger_id}`] = {triggeredAt:r.triggered_at});
+
+  showToast('✅ Data loaded!');
 }
+
 async function saveAll(){
-  try{await window.storage.set('azl_rec',   JSON.stringify(rec));}catch(e){}
-  try{await window.storage.set('azl_mth',   JSON.stringify(mthRec));}catch(e){}
-  try{await window.storage.set('azl_leave', JSON.stringify(leaveRec));}catch(e){}
-  try{await window.storage.set('azl_trig',  JSON.stringify(trigRec));}catch(e){}
+  // saveAll is now handled per-action — no bulk save needed
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -747,7 +835,6 @@ async function toggleTask(tid,freq){
   // Special tasks — open modal instead of simple tick
   if(tid==='mt6'){openK1K2Modal();return;}
   if(tid==='mt8'){openRenewalModal();return;}
-  // mt7 (Debtor) — scroll to debtor tracker
   if(tid==='mt7'){document.getElementById('debtorTracker')?.scrollIntoView({behavior:'smooth'});showToast('👆 Update the Debtor Collection tracker above');return;}
   const t=TASKS.find(x=>x.id===tid);
   const isDaily=freq!=='MTH';
@@ -757,7 +844,6 @@ async function toggleTask(tid,freq){
   if(isDaily?rec[taskKey]:mthRec[taskKey])return;
   const now=getMYT();
   const nowISO=now.toISOString();
-  // Determine late
   let late=false;
   if(t.trigger){
     const trigKey=`${mthKey}_${t.trigger}`;
@@ -767,28 +853,45 @@ async function toggleTask(tid,freq){
     late=isLate(t,nowISO);
   }
   const entry={doneAt:nowISO,late};
-  if(isDaily)rec[taskKey]=entry; else mthRec[taskKey]=entry;
-  await saveAll();renderToday();
+  if(isDaily){
+    rec[taskKey]=entry;
+    await sbUpsert('daily_records',{task_id:tid,date_key:dayKey,done_at:nowISO,late});
+  }else{
+    mthRec[taskKey]=entry;
+    await sbUpsert('monthly_records',{task_id:tid,month_key:mthKey,done_at:nowISO,late});
+  }
+  renderToday();
   showToast(late?`⚠ Marked late · ${fmtDT(nowISO)}`:`✅ Done · ${fmtDT(nowISO)}`);
 }
 
 async function undoK1K2(tid,freq){
   const mthKey=mk(viewD);
   delete mthRec[`${mthKey}_${tid}`];
-  if(k1k2Data[mthKey])k1k2Data[mthKey]=[];
-  await saveAll();await saveSpecial();renderToday();showToast('↩ K1/K2 undone');
+  k1k2Data[mthKey]=[];
+  await sbDelete('monthly_records',{task_id:tid,month_key:mthKey});
+  // Note: K1K2 individual entries kept in DB for audit trail
+  renderToday();showToast('↩ K1/K2 undone');
 }
 async function undoRenewal(tid,freq){
   const mthKey=mk(viewD);
   delete mthRec[`${mthKey}_${tid}`];
-  if(renewalData[mthKey])renewalData[mthKey]=[];
-  await saveAll();await saveSpecial();renderToday();showToast('↩ Renewal undone');
+  renewalData[mthKey]=[];
+  await sbDelete('monthly_records',{task_id:tid,month_key:mthKey});
+  renderToday();showToast('↩ Renewal undone');
 }
 async function undoTask(tid,freq){
   const isDaily=freq!=='MTH';
-  const taskKey=isDaily?`${dk(viewD)}_${tid}`:`${mk(viewD)}_${tid}`;
-  if(isDaily)delete rec[taskKey]; else delete mthRec[taskKey];
-  await saveAll();renderToday();showToast('↩ Undone');
+  const dayKey=dk(viewD);
+  const mthKey=mk(viewD);
+  const taskKey=isDaily?`${dayKey}_${tid}`:`${mthKey}_${tid}`;
+  if(isDaily){
+    delete rec[taskKey];
+    await sbDelete('daily_records',{task_id:tid,date_key:dayKey});
+  }else{
+    delete mthRec[taskKey];
+    await sbDelete('monthly_records',{task_id:tid,month_key:mthKey});
+  }
+  renderToday();showToast('↩ Undone');
 }
 
 function navDay(n){viewD=addDays(viewD,n);renderToday();}
@@ -796,23 +899,38 @@ function goToday(){viewD=getMYT();renderToday();}
 
 async function toggleLeave(type){
   const key=dk(viewD);
-  if(leaveRec[key]===type)delete leaveRec[key]; else leaveRec[key]=type;
-  await saveAll();renderToday();
+  if(leaveRec[key]===type){
+    delete leaveRec[key];
+    await sbDelete('leave_records',{date_key:key});
+  }else{
+    leaveRec[key]=type;
+    await sbUpsert('leave_records',{date_key:key,leave_type:type});
+  }
+  renderToday();
 }
-async function clearLeave(){delete leaveRec[dk(viewD)];await saveAll();renderToday();}
+async function clearLeave(){
+  const key=dk(viewD);
+  delete leaveRec[key];
+  await sbDelete('leave_records',{date_key:key});
+  renderToday();
+}
 
 // Angie triggers
 async function triggerAction(trigId){
   const mthKey=mk(viewD);
   const key=`${mthKey}_${trigId}`;
-  trigRec[key]={triggeredAt:getMYT().toISOString()};
-  await saveAll();renderToday();
-  showToast(`✅ ${TRIGGERS[trigId].releasedLabel} · ${fmtDT(trigRec[key].triggeredAt)}`);
+  const now=getMYT().toISOString();
+  trigRec[key]={triggeredAt:now};
+  await sbUpsert('trigger_records',{trigger_id:trigId,month_key:mthKey,triggered_at:now});
+  renderToday();
+  showToast(`✅ ${TRIGGERS[trigId].releasedLabel} · ${fmtDT(now)}`);
 }
 async function undoTrigger(trigId){
-  const key=`${mk(viewD)}_${trigId}`;
+  const mthKey=mk(viewD);
+  const key=`${mthKey}_${trigId}`;
   delete trigRec[key];
-  await saveAll();renderToday();showToast('↩ Trigger undone');
+  await sbDelete('trigger_records',{trigger_id:trigId,month_key:mthKey});
+  renderToday();showToast('↩ Trigger undone');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1125,7 +1243,7 @@ function buildPrint(){
 function exportData(){
   const d=getMYT();
   const fn=`azleena_backup_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
-  const data={rec,mthRec,leaveRec,trigRec,debtorData,k1k2Data,renewalData,incidentData,exportedAt:d.toISOString(),version:'v6'};
+  const data={rec,mthRec,leaveRec,trigRec,debtorData,k1k2Data,renewalData,incidentData,exportedAt:d.toISOString(),version:'v7',note:'Data also stored in Supabase — this is an additional backup'};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download=fn;a.click();
@@ -1153,11 +1271,21 @@ function importData(e){
 }
 
 async function clearAll(){
-  if(!confirm('⚠️ Delete ALL data permanently?\nExport a backup first!'))return;
-  if(!confirm('Final confirmation — really delete everything?'))return;
+  if(!confirm('⚠️ Delete ALL data permanently?\nThis will delete from Supabase too!\nExport a backup first!'))return;
+  if(!confirm('Final confirmation — really delete everything from Supabase?'))return;
+  // Clear local state
   rec={};mthRec={};leaveRec={};trigRec={};
-  await saveAll();renderDataSummary();renderToday();
-  showToast('🗑️ All data cleared');
+  debtorData={};k1k2Data={};renewalData={};incidentData={};
+  // Clear all Supabase tables
+  const tables=['daily_records','monthly_records','leave_records','trigger_records','debtor_records','k1k2_records','renewal_records','incident_records'];
+  for(const t of tables){
+    await fetch(`${SUPABASE_URL}/rest/v1/${t}?id=neq.00000000-0000-0000-0000-000000000000`,{
+      method:'DELETE',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}
+    });
+  }
+  renderDataSummary();renderToday();
+  showToast('🗑️ All data cleared from Supabase');
 }
 
 function renderDataSummary(){
@@ -1165,16 +1293,20 @@ function renderDataSummary(){
   const mCount=Object.keys(mthRec).length;
   const lCount=Object.keys(leaveRec).length;
   const tCount=Object.keys(trigRec).length;
+  const incCount=Object.values(incidentData).reduce((a,b)=>a+b.length,0);
   const months=new Set([...Object.keys(rec),...Object.keys(mthRec)].map(k=>k.substring(0,7)));
   document.getElementById('dataSummary').innerHTML=`
+    <div class="s-row"><span>☁️ Storage</span><span style="color:var(--green);font-weight:700">Supabase Cloud ✅</span></div>
     <div class="s-row"><span>Daily task records</span><span class="s-val">${rCount}</span></div>
     <div class="s-row"><span>Monthly task records</span><span class="s-val">${mCount}</span></div>
     <div class="s-row"><span>Leave days recorded</span><span class="s-val">${lCount}</span></div>
-    <div class="s-row"><span>Trigger records (SOA / Claims)</span><span class="s-val">${tCount}</span></div>
+    <div class="s-row"><span>Trigger records</span><span class="s-val">${tCount}</span></div>
+    <div class="s-row"><span>Incident records</span><span class="s-val">${incCount}</span></div>
     <div class="s-row"><span>Months with data</span><span class="s-val">${months.size}</span></div>
-    <div style="margin-top:10px;font-size:11px;color:var(--muted);padding:9px;background:var(--bg);border-radius:6px">
-      💡 Click <strong>💾 Save Backup</strong> at top right, or use the Download button above.<br>
-      Save the file to: <strong>OneDrive → Azleena KPI → Backups</strong>
+    <div style="margin-top:10px;font-size:11px;color:var(--green);padding:9px;background:var(--green-bg);border-radius:6px">
+      ✅ Data is automatically saved to Supabase cloud.<br>
+      You and Azleena can use different computers — data is always in sync.<br>
+      💾 Download backup is extra safety — save to OneDrive monthly.
     </div>`;
 }
 
@@ -1206,14 +1338,34 @@ function showToast(msg){
 let debtorData={}, k1k2Data={}, renewalData={};
 
 async function loadSpecial(){
-  try{const r=await window.storage.get('azl_debtor'); if(r)debtorData=JSON.parse(r.value);}catch(e){}
-  try{const r=await window.storage.get('azl_k1k2');   if(r)k1k2Data=JSON.parse(r.value);}catch(e){}
-  try{const r=await window.storage.get('azl_renewal'); if(r)renewalData=JSON.parse(r.value);}catch(e){}
+  // Load debtor records
+  const dr = await sbGet('debtor_records','select=month_key,target,date_key,amount,saved_at');
+  dr.forEach(r=>{
+    if(!debtorData[r.month_key]) debtorData[r.month_key]={target:0,dailyEntries:[]};
+    if(r.date_key){
+      debtorData[r.month_key].dailyEntries=debtorData[r.month_key].dailyEntries||[];
+      debtorData[r.month_key].dailyEntries.push({date:r.date_key,amount:parseFloat(r.amount),savedAt:r.saved_at});
+    } else {
+      debtorData[r.month_key].target=parseFloat(r.target)||0;
+    }
+  });
+
+  // Load K1K2 records
+  const kr = await sbGet('k1k2_records','select=month_key,bl_month,permit_type,done_at,late');
+  kr.forEach(r=>{
+    if(!k1k2Data[r.month_key]) k1k2Data[r.month_key]=[];
+    k1k2Data[r.month_key].push({blMonth:r.bl_month,permitType:r.permit_type,doneAt:r.done_at,late:r.late});
+  });
+
+  // Load renewal records
+  const rr = await sbGet('renewal_records','select=month_key,description,done_at');
+  rr.forEach(r=>{
+    if(!renewalData[r.month_key]) renewalData[r.month_key]=[];
+    renewalData[r.month_key].push({desc:r.description,doneAt:r.done_at});
+  });
 }
 async function saveSpecial(){
-  try{await window.storage.set('azl_debtor', JSON.stringify(debtorData));}catch(e){}
-  try{await window.storage.set('azl_k1k2',   JSON.stringify(k1k2Data));}catch(e){}
-  try{await window.storage.set('azl_renewal', JSON.stringify(renewalData));}catch(e){}
+  // Handled per-action
 }
 
 // ── MODAL helpers ─────────────────────────────────────────────────────────────
@@ -1233,7 +1385,7 @@ function openK1K2Modal(){
   document.getElementById('k1k2Modal').style.display='flex';
 }
 
-function submitK1K2(){
+async function submitK1K2(){
   const blMonth=document.getElementById('k1k2BlMonth').value;
   const permitType=document.getElementById('k1k2PermitType').value;
   const resultEl=document.getElementById('k1k2Result');
@@ -1261,13 +1413,14 @@ function submitK1K2(){
   // Save
   const mthKey=mk(viewD);
   if(!k1k2Data[mthKey])k1k2Data[mthKey]=[];
-  k1k2Data[mthKey].push({blMonth,permitType,doneAt:now.toISOString(),late:!onTime});
+  const nowISO=now.toISOString();
+  k1k2Data[mthKey].push({blMonth,permitType,doneAt:nowISO,late:!onTime});
+  await sbInsert('k1k2_records',{month_key:mthKey,bl_month:blMonth,permit_type:permitType,done_at:nowISO,late:!onTime});
 
-  // Mark mt6 as done in mthRec
+  // Mark mt6 as done
   const taskKey=`${mthKey}_mt6`;
-  mthRec[taskKey]={doneAt:now.toISOString(),late:!onTime};
-
-  saveSpecial();saveAll();
+  mthRec[taskKey]={doneAt:nowISO,late:!onTime};
+  await sbUpsert('monthly_records',{task_id:'mt6',month_key:mthKey,done_at:nowISO,late:!onTime});
 
   // Close after 2s
   setTimeout(()=>{closeModal('k1k2Modal');renderToday();},2000);
@@ -1279,16 +1432,18 @@ function openRenewalModal(){
   document.getElementById('renewalModal').style.display='flex';
 }
 
-function submitRenewal(){
+async function submitRenewal(){
   const desc=document.getElementById('renewalDesc').value.trim();
   if(!desc){alert('Please describe what was renewed.');return;}
   const now=getMYT();
   const mthKey=mk(viewD);
+  const nowISO=now.toISOString();
   if(!renewalData[mthKey])renewalData[mthKey]=[];
-  renewalData[mthKey].push({desc,doneAt:now.toISOString()});
+  renewalData[mthKey].push({desc,doneAt:nowISO});
+  await sbInsert('renewal_records',{month_key:mthKey,description:desc,done_at:nowISO});
   // Mark mt8 as done
-  mthRec[`${mthKey}_mt8`]={doneAt:now.toISOString(),late:false};
-  saveSpecial();saveAll();
+  mthRec[`${mthKey}_mt8`]={doneAt:nowISO,late:false};
+  await sbUpsert('monthly_records',{task_id:'mt8',month_key:mthKey,done_at:nowISO,late:false});
   closeModal('renewalModal');renderToday();
   showToast('✅ Renewal recorded');
 }
@@ -1398,7 +1553,8 @@ async function saveDebtorTarget(){
   const mthKey=mk(viewD);
   if(!debtorData[mthKey])debtorData[mthKey]={target:0,dailyEntries:[]};
   debtorData[mthKey].target=target;
-  await saveSpecial();
+  // Upsert target row (date_key is null for target row)
+  await sbUpsert('debtor_records',{month_key:mthKey,target,date_key:null,amount:0});
   renderDebtorTracker();
   showToast('✅ Target set: RM '+target.toLocaleString());
 }
@@ -1410,12 +1566,13 @@ async function saveDebtorToday(){
   const todayKey=dk(viewD);
   if(!debtorData[mthKey])debtorData[mthKey]={target:0,dailyEntries:[]};
   const entries=debtorData[mthKey].dailyEntries||[];
-  // Update or add today's entry
   const idx=entries.findIndex(e=>e.date===todayKey);
-  const entry={date:todayKey,amount:amt,savedAt:getMYT().toISOString()};
+  const savedAt=getMYT().toISOString();
+  const entry={date:todayKey,amount:amt,savedAt};
   if(idx>=0)entries[idx]=entry; else entries.push(entry);
   debtorData[mthKey].dailyEntries=entries;
-  await saveSpecial();
+  // Upsert daily amount row
+  await sbUpsert('debtor_records',{month_key:mthKey,date_key:todayKey,amount:amt,saved_at:savedAt,target:0});
   renderDebtorTracker();
   showToast('✅ RM '+amt.toLocaleString()+' saved for '+todayKey);
 }
@@ -1425,7 +1582,7 @@ async function deleteDebtorEntry(dateKey){
   const mthKey=mk(viewD);
   if(!debtorData[mthKey])return;
   debtorData[mthKey].dailyEntries=(debtorData[mthKey].dailyEntries||[]).filter(e=>e.date!==dateKey);
-  await saveSpecial();
+  await sbDelete('debtor_records',{month_key:mthKey,date_key:dateKey});
   renderDebtorTracker();
   showToast('↩ Entry deleted');
 }
@@ -1456,10 +1613,14 @@ function debtorMonthScore(yr,m){
 let incidentData = {};
 
 async function loadIncidents(){
-  try{const r=await window.storage.get('azl_incidents'); if(r)incidentData=JSON.parse(r.value);}catch(e){}
+  const rows = await sbGet('incident_records','select=id,month_key,type,category,date_key,remark,saved_at');
+  rows.forEach(r=>{
+    if(!incidentData[r.month_key]) incidentData[r.month_key]=[];
+    incidentData[r.month_key].push({id:r.id,type:r.type,category:r.category,date:r.date_key,remark:r.remark,savedAt:r.saved_at});
+  });
 }
 async function saveIncidents(){
-  try{await window.storage.set('azl_incidents',JSON.stringify(incidentData));}catch(e){}
+  // Handled per-action
 }
 
 const CAT_LABELS = {
@@ -1493,12 +1654,12 @@ async function submitIncident(){
   const incD = new Date(date+'T00:00:00');
   const mthKey = `${incD.getFullYear()}-${String(incD.getMonth()+1).padStart(2,'0')}`;
   if(!incidentData[mthKey]) incidentData[mthKey]=[];
-  incidentData[mthKey].push({
-    id: Date.now().toString(),
-    type, category, date, remark,
-    savedAt: getMYT().toISOString()
+  const savedAt = getMYT().toISOString();
+  const inserted = await sbInsert('incident_records',{
+    month_key:mthKey, type, category, date_key:date, remark, saved_at:savedAt
   });
-  await saveIncidents();
+  const newId = inserted?.[0]?.id || Date.now().toString();
+  incidentData[mthKey].push({id:newId, type, category, date, remark, savedAt});
   closeModal('incidentModal');
   renderIncidentSection();
   showToast(type==='pos'?'➕ Good performance recorded':'➖ Incident recorded');
@@ -1507,7 +1668,7 @@ async function submitIncident(){
 async function deleteIncident(mthKey, id){
   if(!confirm('Delete this record?'))return;
   incidentData[mthKey]=(incidentData[mthKey]||[]).filter(x=>x.id!==id);
-  await saveIncidents();
+  await sbDelete('incident_records',{id});
   renderIncidentSection();
 }
 
