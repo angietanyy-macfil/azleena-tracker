@@ -469,6 +469,36 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
   </div>
 </div>
 
+
+<!-- Add Staff Modal -->
+<div id="staffModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal('staffModal')">
+  <div class="modal">
+    <h3 id="staffModalTitle">👤 Add New Staff</h3>
+    <div class="modal-sub">New staff will appear in birthday reminders immediately.</div>
+    <label>Full Name</label>
+    <input type="text" id="staffName" placeholder="e.g. Ahmad Bin Ali">
+    <label>Birthday (Day / Month)</label>
+    <div style="display:flex;gap:10px">
+      <select id="staffBday" style="flex:1">
+        <option value="">— Day —</option>
+      </select>
+      <select id="staffBmon" style="flex:1">
+        <option value="">— Month —</option>
+        <option value="01">January</option><option value="02">February</option>
+        <option value="03">March</option><option value="04">April</option>
+        <option value="05">May</option><option value="06">June</option>
+        <option value="07">July</option><option value="08">August</option>
+        <option value="09">September</option><option value="10">October</option>
+        <option value="11">November</option><option value="12">December</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal('staffModal')">Cancel</button>
+      <button class="modal-ok" onclick="submitAddStaff()">✅ Add Staff</button>
+    </div>
+  </div>
+</div>
+
 </div><!-- /main -->
 
 <script>
@@ -569,12 +599,12 @@ function getBirthdaysToday(d){
   const m=String(d.getMonth()+1).padStart(2,'0');
   const day=String(d.getDate()).padStart(2,'0');
   const today=m+'/'+day;
-  return STAFF_LIST.filter(s=>s.active&&s.bday===today);
+  return getAllStaff().filter(s=>s.active&&s.bday===today);
 }
 
 function getBirthdaysThisMonth(d){
   const m=String(d.getMonth()+1).padStart(2,'0');
-  return STAFF_LIST.filter(s=>s.active&&s.bday.startsWith(m+'/'))
+  return getAllStaff().filter(s=>s.active&&s.bday.startsWith(m+'/'))
     .sort((a,b)=>parseInt(a.bday.split('/')[1])-parseInt(b.bday.split('/')[1]));
 }
 
@@ -1887,34 +1917,122 @@ async function saveBirthdays(){
   try{await window.storage.set('azl_wboard',JSON.stringify(bdayWboard));}catch(e){}
 }
 
-// Toggle staff active status
-function toggleStaffActive(staffId){
-  const s=STAFF_LIST.find(x=>x.id===staffId);
-  if(s){s.active=!s.active;renderStaffTab();}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// STAFF MANAGEMENT — add/update staff in Supabase
+// ═══════════════════════════════════════════════════════════════════════════════
+let dynamicStaff = []; // loaded from Supabase, merged with STAFF_LIST
+
+async function loadStaff(){
+  const rows = await sbGet('staff_records','select=id,name,bday,active&order=name');
+  dynamicStaff = rows.map(r=>({id:r.id,name:r.name,bday:r.bday,active:r.active,dynamic:true}));
 }
+
+function getAllStaff(){
+  // Merge static list + dynamic (Supabase) list, dynamic takes priority
+  const dynIds = new Set(dynamicStaff.map(s=>s.name.toLowerCase()));
+  const staticFiltered = STAFF_LIST.filter(s=>!dynIds.has(s.name.toLowerCase()));
+  return [...staticFiltered,...dynamicStaff];
+}
+
+function openAddStaffModal(){
+  document.getElementById('staffModalTitle').textContent = '👤 Add New Staff';
+  document.getElementById('staffName').value = '';
+  document.getElementById('staffBday').value = '';
+  document.getElementById('staffBmon').value = '';
+  // Populate day dropdown
+  const daysel = document.getElementById('staffBday');
+  daysel.innerHTML = '<option value="">— Day —</option>';
+  for(let d=1;d<=31;d++){
+    const o=document.createElement('option');
+    o.value=String(d).padStart(2,'0');
+    o.textContent=d;
+    daysel.appendChild(o);
+  }
+  document.getElementById('staffModal').style.display='flex';
+}
+
+async function submitAddStaff(){
+  const name = document.getElementById('staffName').value.trim();
+  const day  = document.getElementById('staffBday').value;
+  const mon  = document.getElementById('staffBmon').value;
+  if(!name){alert('Please enter staff name.');return;}
+  if(!day||!mon){alert('Please select birthday day and month.');return;}
+  const bday = mon+'/'+day; // MM/DD format
+  // Save to Supabase
+  const result = await sbInsert('staff_records',{name,bday,active:true});
+  if(result&&result[0]){
+    dynamicStaff.push({id:result[0].id,name,bday,active:true,dynamic:true});
+    closeModal('staffModal');
+    renderStaffTab();
+    showToast('✅ '+name+' added!');
+  } else {
+    // Fallback: add to local STAFF_LIST if Supabase fails
+    const newId='sd'+Date.now();
+    STAFF_LIST.push({id:newId,name,bday,active:true});
+    closeModal('staffModal');
+    renderStaffTab();
+    showToast('✅ '+name+' added (local only — check Supabase connection)');
+  }
+}
+
+async function toggleStaffActiveDB(staffId, isDynamic){
+  if(isDynamic){
+    const s=dynamicStaff.find(x=>x.id===staffId);
+    if(!s)return;
+    s.active=!s.active;
+    await sbUpsert('staff_records',{id:staffId,name:s.name,bday:s.bday,active:s.active});
+  } else {
+    const s=STAFF_LIST.find(x=>x.id===staffId);
+    if(s)s.active=!s.active;
+  }
+  renderStaffTab();
+  showToast('✅ Staff status updated');
+}
+
+
 
 function renderStaffTab(){
   const myt=getMYT();
-  const thisMo=getBirthdaysThisMonth(myt);
+  const allStaff=getAllStaff();
+  const thisMo=allStaff.filter(s=>{
+    if(!s.active)return false;
+    const m=String(myt.getMonth()+1).padStart(2,'0');
+    return s.bday.startsWith(m+'/');
+  }).sort((a,b)=>parseInt(a.bday.split('/')[1])-parseInt(b.bday.split('/')[1]));
+
   document.getElementById('bdayThisMonth').textContent=
     thisMo.length?'🎂 This month: '+thisMo.map(s=>s.name.split(' ')[0]).join(', '):'No birthdays this month';
 
-  const rows=STAFF_LIST.map(s=>{
+  // Sort: active first, then by name
+  const sorted=[...allStaff].sort((a,b)=>{
+    if(a.active!==b.active)return b.active-a.active;
+    return a.name.localeCompare(b.name);
+  });
+
+  const rows=sorted.map(s=>{
     const [bm,bd]=s.bday.split('/');
     const bdayStr=bd+'/'+bm; // DD/MM display
+    const isDyn=!!s.dynamic;
     return`<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:${s.active?'var(--card)':'#F9F9F9'};border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
       <div style="flex:1">
-        <div style="font-size:13px;font-weight:${s.active?'500':'400'};color:${s.active?'var(--text)':'var(--muted)'};${s.active?'':'text-decoration:line-through'}">${s.name}</div>
+        <div style="font-size:13px;font-weight:${s.active?'500':'400'};color:${s.active?'var(--text)':'var(--muted)'};${s.active?'':'text-decoration:line-through'}">${s.name}${isDyn?'<span style="font-size:9px;background:var(--blue-bg);color:var(--blue);padding:1px 5px;border-radius:3px;margin-left:6px">New</span>':''}</div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px">🎂 ${bdayStr}</div>
       </div>
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
-        <input type="checkbox" ${s.active?'checked':''} onchange="toggleStaffActive('${s.id}')"
+        <input type="checkbox" ${s.active?'checked':''} onchange="toggleStaffActiveDB('${s.id}',${isDyn})"
           style="width:16px;height:16px;cursor:pointer">
         ${s.active?'<span style="color:var(--green);font-weight:600">Active</span>':'<span style="color:var(--muted)">Resigned</span>'}
       </label>
     </div>`;
   }).join('');
-  document.getElementById('staffList').innerHTML=rows;
+
+  document.getElementById('staffList').innerHTML=`
+    <div style="margin-bottom:12px">
+      <button onclick="openAddStaffModal()" style="background:var(--navy);color:#fff;border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer">+ Add New Staff</button>
+      <span style="font-size:11px;color:var(--muted);margin-left:12px">Total: ${allStaff.length} staff (${allStaff.filter(s=>s.active).length} active)</span>
+    </div>
+    ${rows}`;
 }
 
 // Render birthday tasks for today
