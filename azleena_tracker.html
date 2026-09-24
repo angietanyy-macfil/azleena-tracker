@@ -789,9 +789,9 @@ function renderToday(){
   }
   wkndMsg.style.display='none';taskArea.style.display='block';
   // Debtor, Incident & Birthday sections
-  renderDebtorTracker();
-  renderIncidentSection();
-  renderBirthdayTasks();
+  try{renderDebtorTracker();}catch(e){console.error('debtorTracker error:',e);}
+  try{renderIncidentSection();}catch(e){console.error('incidentSection error:',e);}
+  try{renderBirthdayTasks();}catch(e){console.error('birthdayTasks error:',e);}
 
   // Build task groups
   const grps={D:[],M:[],WF:[],F:[],MTH:[]};
