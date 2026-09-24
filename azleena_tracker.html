@@ -532,6 +532,52 @@ const TRIGGERS={
   },
 };
 
+
+// ── STAFF BIRTHDAYS ──────────────────────────────────────────────────────────
+const STAFF_LIST = [
+  {id:'s01',name:'Yap Chee Meng',                              bday:'01/15',active:true},
+  {id:'s02',name:'Tan Yi Yuen',                                bday:'02/14',active:true},
+  {id:'s03',name:'Yap Chee Hong',                              bday:'03/06',active:true},
+  {id:'s04',name:'Wong Woei Liang',                            bday:'08/03',active:true},
+  {id:'s05',name:'Azleena Binti Aman',                         bday:'01/19',active:true},
+  {id:'s06',name:'Yap Fui Kian',                               bday:'05/17',active:true},
+  {id:'s07',name:'Yap Chee Siong',                             bday:'04/21',active:true},
+  {id:'s08',name:'Sim Li Li',                                  bday:'07/21',active:true},
+  {id:'s09',name:'Kenneth Cheow Yi Jun',                       bday:'04/01',active:true},
+  {id:'s10',name:'Wong Jia Wei',                               bday:'05/17',active:true},
+  {id:'s11',name:'Nor Ahmad Bin Zainal Abidin',                bday:'08/01',active:true},
+  {id:'s12',name:'Chai Fei Min',                               bday:'12/14',active:true},
+  {id:'s13',name:'Kamaruzaman Bin Zulkefli',                   bday:'03/22',active:true},
+  {id:'s14',name:'Derek Hoo Ngai Lik',                         bday:'04/25',active:true},
+  {id:'s15',name:'Afnan Zikry Bin Azhar',                      bday:'11/22',active:true},
+  {id:'s16',name:'Siti Hajar Binti Mokhtar',                   bday:'09/12',active:true},
+  {id:'s17',name:'Low Yee Sien',                               bday:'06/14',active:true},
+  {id:'s18',name:'Chow Yan Yee',                               bday:'02/14',active:true},
+  {id:'s19',name:'Muhammad Salahuddin Bin Mat Salleh',         bday:'11/20',active:true},
+  {id:'s20',name:'Nurfifi Natasha Ashiqin Binti Mohd Zamri',   bday:'03/25',active:true},
+  {id:'s21',name:'Amber Maria Jarnell',                        bday:'12/30',active:true},
+  {id:'s22',name:'Choong Kwee Hin',                            bday:'01/20',active:true},
+  {id:'s23',name:'Nur Wardah Khalisah Binti Mohammad Fawzi',   bday:'03/04',active:true},
+  {id:'s24',name:'Muhamad Nur Akmal Bin Najib',                bday:'06/18',active:true},
+  {id:'s25',name:'Wan Mork Lum',                               bday:'06/24',active:true},
+  {id:'s26',name:'On Poh Lay',                                 bday:'03/02',active:true},
+  {id:'s27',name:'Yap Chee Onn',                               bday:'03/06',active:true},
+  {id:'s28',name:'Nur Fatihah Binti Ismail',                   bday:'11/25',active:true},
+];
+
+function getBirthdaysToday(d){
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const day=String(d.getDate()).padStart(2,'0');
+  const today=m+'/'+day;
+  return STAFF_LIST.filter(s=>s.active&&s.bday===today);
+}
+
+function getBirthdaysThisMonth(d){
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  return STAFF_LIST.filter(s=>s.active&&s.bday.startsWith(m+'/'))
+    .sort((a,b)=>parseInt(a.bday.split('/')[1])-parseInt(b.bday.split('/')[1]));
+}
+
 const MONTHS=[
   {yr:2026,m:4,label:'April 2026',q:1},{yr:2026,m:5,label:'May 2026',q:1},{yr:2026,m:6,label:'June 2026',q:1},
   {yr:2026,m:7,label:'July 2026',q:2},{yr:2026,m:8,label:'August 2026',q:2},{yr:2026,m:9,label:'September 2026',q:2},
