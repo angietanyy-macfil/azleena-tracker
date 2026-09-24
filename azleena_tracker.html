@@ -269,6 +269,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
   <div class="tab on"  onclick="showTab('today')">📋 Today's Tasks</div>
   <div class="tab"     onclick="showTab('cal')">📅 Calendar & KPI</div>
   <div class="tab"     onclick="showTab('print')">🖨️ Print Monthly</div>
+  <div class="tab"     onclick="showTab('staff')">🎂 Staff & Birthdays</div>
   <div class="tab"     onclick="showTab('backup')">💾 Backup / Restore</div>
 </div>
 
@@ -302,6 +303,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
   </div>
 
   <div id="leaveNotice" class="leave-notice" style="display:none"></div>
+  <div id="bdayMonthNotice" style="display:none;background:#FFFDF0;border:1px solid #FFD700;border-radius:var(--r);padding:9px 14px;margin-bottom:12px;font-size:12px;color:#8a6d00"></div>
 
   <!-- Angie trigger section -->
   <div class="trigger-section" id="triggerSection" style="display:none">
@@ -357,6 +359,18 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
     <button class="print-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
   </div>
   <div class="pp" id="printPage"></div>
+</div>
+
+<!-- ══ TAB 5: STAFF & BIRTHDAYS ════════════════════════════════════════════ -->
+<div id="tab-staff" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <div>
+      <div style="font-size:15px;font-weight:700;color:var(--navy)">🎂 Staff Birthday List</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">Manage active staff — birthdays appear automatically in Today's Tasks</div>
+    </div>
+    <div style="font-size:12px;background:var(--green-bg);color:var(--green);padding:6px 14px;border-radius:20px;font-weight:600" id="bdayThisMonth"></div>
+  </div>
+  <div id="staffList"></div>
 </div>
 
 <!-- ══ TAB 4: BACKUP / RESTORE ══════════════════════════════════════════════ -->
@@ -424,6 +438,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 </div>
 
 
+<!-- Birthday tasks injected dynamically in renderToday -->
+
 <!-- Incident Modal -->
 <div id="incidentModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal('incidentModal')">
   <div class="modal">
@@ -487,7 +503,11 @@ const TASKS=[
   {id:'mt5',name:'Chase all outstanding forwarder invoices / BL',              due:'Before month end closing',           freq:'MTH',dl:null,     kpi:'k1k2'},
   {id:'mt6',name:'Raise self-bill e-Invoice for all shipments (K1/K2)',        due:'Month following BL date',            freq:'MTH',dl:null,     kpi:'k1k2'},
   {id:'mt7',name:'Update Debtor Collection Report (Customer Due Listing)',      due:'Weekly / ongoing',                   freq:'MTH',dl:null,     kpi:'coll'},
-  {id:'mt8',name:'Monitor statutory renewals — renew before expiry',           due:'Ongoing — DBKL, fire ext, ins, road tax',freq:'MTH',dl:null, kpi:'disc'},
+  {id:'mt8', name:'Monitor statutory renewals — renew before expiry',          due:'Ongoing — DBKL, fire ext, ins, road tax',          freq:'MTH',dl:null,kpi:'disc'},
+  {id:'mt9', name:'Stationery & Grocery supply — complete F24 form',               due:'By 30th of month',                                  freq:'MTH',dl:null,kpi:'disc'},
+  {id:'mt10',name:'Monthly Attendance Report — submit to Yee Sien',                due:'By 30th of month',                                  freq:'MTH',dl:null,kpi:'time'},
+  {id:'mt11',name:'Birthday whiteboard — write all birthdays for this month',      due:'By 1st of month (last workday of prev month if PH)', freq:'MTH',dl:null,kpi:'disc'},
+  {id:'d4',  name:'Daily Leave Record — update staff leave record',                due:'Every day (even if no leave)',                       freq:'D',  dl:null,kpi:'time'},
 ];
 
 // Angie triggers — separate from tasks
@@ -768,9 +788,10 @@ function renderToday(){
     renderStrip(viewD);return;
   }
   wkndMsg.style.display='none';taskArea.style.display='block';
-  // Debtor & Incident sections (weekend handled above by early return)
+  // Debtor, Incident & Birthday sections
   renderDebtorTracker();
   renderIncidentSection();
+  renderBirthdayTasks();
 
   // Build task groups
   const grps={D:[],M:[],WF:[],F:[],MTH:[]};
@@ -836,6 +857,17 @@ async function toggleTask(tid,freq){
   if(tid==='mt6'){openK1K2Modal();return;}
   if(tid==='mt8'){openRenewalModal();return;}
   if(tid==='mt7'){document.getElementById('debtorTracker')?.scrollIntoView({behavior:'smooth'});showToast('👆 Update the Debtor Collection tracker above');return;}
+  if(tid==='mt11'){
+    const bdaysMo=getBirthdaysThisMonth(getMYT());
+    const msg=bdaysMo.length?'This month birthdays: '+bdaysMo.map(s=>s.name.split(' ')[0]+' ('+s.bday.split('/')[1]+'/'+s.bday.split('/')[0]+')').join(', '):'No birthdays this month';
+    if(confirm('Mark whiteboard as written?\n\n'+msg)){
+      const now=getMYT();const mthKey=mk(viewD);
+      mthRec[mthKey+'_mt11']={doneAt:now.toISOString(),late:false};
+      await sbUpsert('monthly_records',{task_id:'mt11',month_key:mthKey,done_at:now.toISOString(),late:false});
+      renderToday();showToast('✅ Birthday whiteboard marked done!');
+    }
+    return;
+  }
   const t=TASKS.find(x=>x.id===tid);
   const isDaily=freq!=='MTH';
   const dayKey=dk(viewD);
@@ -1314,10 +1346,11 @@ function renderDataSummary(){
 // UI HELPERS
 // ═══════════════════════════════════════════════════════════════════════════════
 function showTab(name){
-  ['today','cal','print','backup'].forEach(t=>{document.getElementById('tab-'+t).style.display=t===name?'block':'none';});
-  document.querySelectorAll('.tab').forEach((el,i)=>{el.classList.toggle('on',['today','cal','print','backup'][i]===name);});
+  ['today','cal','print','staff','backup'].forEach(t=>{document.getElementById('tab-'+t).style.display=t===name?'block':'none';});
+  document.querySelectorAll('.tab').forEach((el,i)=>{el.classList.toggle('on',['today','cal','print','staff','backup'][i]===name);});
   if(name==='cal'){calYr=viewD.getFullYear();calMo=viewD.getMonth()+1;renderCal();renderQRpt();}
   if(name==='print')buildPrint();
+  if(name==='staff')renderStaffTab();
   if(name==='backup')renderDataSummary();
 }
 
@@ -1789,6 +1822,100 @@ function renderIncidentSection(){
         <tbody>${entriesHTML}</tbody>
       </table>
     </div>`;
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BIRTHDAY & STAFF MANAGEMENT
+// bdayRec[mthKey_staffId] = {doneAt:ISO} — celebration done
+// bdayWboard[mthKey] = {doneAt:ISO} — whiteboard written
+// ═══════════════════════════════════════════════════════════════════════════════
+let bdayRec={}, bdayWboard={};
+
+async function loadBirthdays(){
+  try{const r=await window.storage.get('azl_bday');if(r)bdayRec=JSON.parse(r.value);}catch(e){}
+  try{const r=await window.storage.get('azl_wboard');if(r)bdayWboard=JSON.parse(r.value);}catch(e){}
+}
+async function saveBirthdays(){
+  try{await window.storage.set('azl_bday',JSON.stringify(bdayRec));}catch(e){}
+  try{await window.storage.set('azl_wboard',JSON.stringify(bdayWboard));}catch(e){}
+}
+
+// Toggle staff active status
+function toggleStaffActive(staffId){
+  const s=STAFF_LIST.find(x=>x.id===staffId);
+  if(s){s.active=!s.active;renderStaffTab();}
+}
+
+function renderStaffTab(){
+  const myt=getMYT();
+  const thisMo=getBirthdaysThisMonth(myt);
+  document.getElementById('bdayThisMonth').textContent=
+    thisMo.length?'🎂 This month: '+thisMo.map(s=>s.name.split(' ')[0]).join(', '):'No birthdays this month';
+
+  const rows=STAFF_LIST.map(s=>{
+    const [bm,bd]=s.bday.split('/');
+    const bdayStr=bd+'/'+bm; // DD/MM display
+    return`<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:${s.active?'var(--card)':'#F9F9F9'};border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:${s.active?'500':'400'};color:${s.active?'var(--text)':'var(--muted)'};${s.active?'':'text-decoration:line-through'}">${s.name}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">🎂 ${bdayStr}</div>
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+        <input type="checkbox" ${s.active?'checked':''} onchange="toggleStaffActive('${s.id}')"
+          style="width:16px;height:16px;cursor:pointer">
+        ${s.active?'<span style="color:var(--green);font-weight:600">Active</span>':'<span style="color:var(--muted)">Resigned</span>'}
+      </label>
+    </div>`;
+  }).join('');
+  document.getElementById('staffList').innerHTML=rows;
+}
+
+// Render birthday tasks for today
+function renderBirthdayTasks(){
+  const bdays=getBirthdaysToday(viewD);
+  const mthKey=mk(viewD);
+  const existing=document.getElementById('sec-BDAY');
+  if(existing)existing.remove();
+  if(!bdays.length)return;
+
+  const taskArea=document.getElementById('taskArea');
+  const bdaySection=document.createElement('div');
+  bdaySection.id='sec-BDAY';
+  bdaySection.innerHTML=`<div class="sec-lbl">🎂 Birthday Today!</div>`+
+    bdays.map(s=>{
+      const recKey=mthKey+'_bday_'+s.id;
+      const r=bdayRec[recKey];
+      const done=!!r;
+      return`<div class="t-card" style="border-color:#FFD700;background:#FFFDF0">
+        <div class="t-row">
+          <div class="chk ${done?'done':''}" onclick="toggleBday('${s.id}')">${done?'✓':''}</div>
+          <div class="t-info">
+            <div class="t-name ${done?'done':''}">🎂 ${s.name} — Arrange celebration & send birthday wish</div>
+            <div class="t-due">🎉 Birthday today!</div>
+            ${done?`<div class="t-stamp ok">✅ Done · ${fmtDT(r.doneAt)}</div>`:''}
+          </div>
+          <span class="kpi-tag tag-disc">Discipline</span>
+          ${done?`<button class="undo-btn" onclick="undoBday('${s.id}')">Undo</button>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  taskArea.insertBefore(bdaySection, taskArea.firstChild);
+}
+
+async function toggleBday(staffId){
+  const mthKey=mk(viewD);
+  const key=mthKey+'_bday_'+staffId;
+  if(bdayRec[key])return;
+  bdayRec[key]={doneAt:getMYT().toISOString()};
+  await saveBirthdays();
+  renderBirthdayTasks();
+  showToast('🎂 Birthday celebration marked done!');
+}
+async function undoBday(staffId){
+  delete bdayRec[mk(viewD)+'_bday_'+staffId];
+  await saveBirthdays();
+  renderBirthdayTasks();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
